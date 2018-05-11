@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	kubeinformers "k8s.io/client-go/informers"
+
+	"github.com/owainlewis/oci-ingress/internal/ingress"
 )
 
 type OCIController struct {
@@ -21,6 +23,8 @@ type OCIController struct {
 	ingressLister    lister_v1beta1.IngressLister
 	ingressWorkQueue workqueue.RateLimitingInterface
 	ingressSynced    cache.InformerSynced
+
+	ingressManager *ingress.Manager
 
 	namespace string
 }
@@ -35,6 +39,7 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 		ingressWorkQueue: queue,
 		ingressLister:    ingressInformer.Lister(),
 		ingressSynced:    ingressInformer.Informer().HasSynced,
+		ingressManager:   ingress.NewManager(),
 		namespace:        namespace,
 	}
 
