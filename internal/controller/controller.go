@@ -56,7 +56,7 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 		DeleteFunc: func(obj interface{}) {
 			ingress, ok := obj.(*v1beta1.Ingress)
 			if ok {
-				ctrl.EnsureIngressDeleted(ingress)
+				ctrl.ingressManager.EnsureIngressDeleted(ingress)
 			}
 		},
 	})
@@ -85,18 +85,6 @@ func (c *OCIController) Run(threadiness int, stopCh <-chan struct{}) error {
 	glog.Info("Shutting down workers")
 
 	return nil
-}
-
-// EnsureIngress will ensure that the observed Ingress object state is reflected
-// in OCI
-func (c *OCIController) EnsureIngress(ingress *v1beta1.Ingress) {
-	glog.Infof("Ensuring ingress...")
-	glog.Infof("Ingress Spec: %+v", ingress.Spec)
-}
-
-// EnsureIngressDeleted will ensure that an ingress object is removed from OCI
-func (c *OCIController) EnsureIngressDeleted(ingress *v1beta1.Ingress) {
-	glog.Infof("Deleting ingress")
 }
 
 func (c *OCIController) enqueueIngress(obj interface{}) {
@@ -165,6 +153,6 @@ func (c *OCIController) syncHandler(key string) error {
 		return err
 	}
 
-	c.EnsureIngress(ingress)
+	c.ingressManager.EnsureIngress(ingress)
 	return nil
 }
