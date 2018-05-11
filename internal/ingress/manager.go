@@ -5,11 +5,12 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 )
 
-// Manager maps desired to actual state for ingress objects in
-// Kubernetes and Load Balancers in OCI
+// Manager transforms ingress objects into OCI load balancer specifications
+// and ensures that the desired and actual state of the world align.
 type Manager struct {
 }
 
+// NewManager constructs a new ingress Manager
 func NewManager() *Manager {
 	return &Manager{}
 }
