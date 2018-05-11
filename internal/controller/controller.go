@@ -49,7 +49,10 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 			ctrl.enqueueIngress(new)
 		},
 		DeleteFunc: func(obj interface{}) {
-			glog.Info("Deleting object")
+			ingress, ok := obj.(*v1beta1.Ingress)
+			if ok {
+				ctrl.EnsureIngressDeleted(ingress)
+			}
 		},
 	})
 
@@ -84,6 +87,11 @@ func (c *OCIController) Run(threadiness int, stopCh <-chan struct{}) error {
 func (c *OCIController) EnsureIngress(ingress *v1beta1.Ingress) {
 	glog.Infof("Ensuring ingress...")
 	glog.Infof("Ingress Spec: %+v", ingress.Spec)
+}
+
+// EnsureIngressDeleted will ensure that an ingress object is removed from OCI
+func (c *OCIController) EnsureIngressDeleted(ingress *v1beta1.Ingress) {
+	glog.Infof("Deleting ingress")
 }
 
 func (c *OCIController) enqueueIngress(obj interface{}) {

@@ -1,6 +1,6 @@
 package ingress
 
-// This package maps ingress object desired start into actual state
+// This package maps ingress objects into OCI load balancer desired state
 
 func ensureIngress() {
 
