@@ -18,6 +18,7 @@ import (
 	"github.com/owainlewis/oci-ingress/internal/ingress"
 )
 
+// OCIController is the definition for an OCI Ingress Controller
 type OCIController struct {
 	client           kubernetes.Interface
 	ingressLister    lister_v1beta1.IngressLister
@@ -29,6 +30,7 @@ type OCIController struct {
 	namespace string
 }
 
+// NewOCIController will create a new OCI Ingress Controller
 func NewOCIController(client kubernetes.Interface, namespace string, informerFactory kubeinformers.SharedInformerFactory) *OCIController {
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
@@ -64,6 +66,7 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 	return ctrl
 }
 
+// Run will start the OCI Ingress Controller
 func (c *OCIController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.ingressWorkQueue.ShutDown()

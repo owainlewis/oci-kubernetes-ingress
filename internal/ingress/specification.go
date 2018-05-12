@@ -4,14 +4,16 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 )
 
-// A specification describes the desired state of the OCI load balancer
+// Specification describes the desired state of the OCI load balancer
 type Specification struct {
-	Name     string
-	Shape    string
-	Subnets  []string
-	Internal bool
+	Name    string
+	Shape   string
+	Subnets []string
+	Public  bool
 }
 
+// NewSpecificationFromIngress creates a new load balancer specification for a
+// given Ingress
 func NewSpecificationFromIngress(ingress *v1beta1.Ingress) Specification {
 	return Specification{}
 }
