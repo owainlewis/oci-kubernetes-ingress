@@ -25,7 +25,7 @@ type OCIController struct {
 	ingressWorkQueue workqueue.RateLimitingInterface
 	ingressSynced    cache.InformerSynced
 
-	ingressManager *ingress.Manager
+	ingressManager ingress.Manager
 
 	namespace string
 }
