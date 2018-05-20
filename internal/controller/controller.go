@@ -9,10 +9,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	lister_v1 "k8s.io/client-go/listers/core/v1"
 	lister_v1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
+	"k8s.io/apimachinery/pkg/labels"
 	kubeinformers "k8s.io/client-go/informers"
 
 	"github.com/owainlewis/oci-ingress/internal/ingress"
@@ -24,8 +26,8 @@ type OCIController struct {
 	ingressLister    lister_v1beta1.IngressLister
 	ingressWorkQueue workqueue.RateLimitingInterface
 	ingressSynced    cache.InformerSynced
-
-	ingressManager ingress.Manager
+	ingressManager   ingress.Manager
+	nodeLister       lister_v1.NodeLister
 
 	namespace string
 }
@@ -36,13 +38,19 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 
 	ingressInformer := informerFactory.Extensions().V1beta1().Ingresses()
 
+	// serviceInformer := informerFactory.Core().V1().Services()
+
+	nodeInformer := informerFactory.Core().V1().Nodes()
+
 	ctrl := &OCIController{
 		client:           client,
 		ingressWorkQueue: queue,
 		ingressLister:    ingressInformer.Lister(),
 		ingressSynced:    ingressInformer.Informer().HasSynced,
 		ingressManager:   ingress.NewManager(),
-		namespace:        namespace,
+		nodeLister:       nodeInformer.Lister(),
+
+		namespace: namespace,
 	}
 
 	ingressInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -154,6 +162,11 @@ func (c *OCIController) syncHandler(key string) error {
 	ingress, err := c.ingressLister.Ingresses(namespace).Get(name)
 	if err != nil {
 		return err
+	}
+
+	nodes, err := c.nodeLister.List(labels.Everything())
+	for _, node := range nodes {
+		glog.Infof("Node %s", node.Spec.ExternalID)
 	}
 
 	c.ingressManager.EnsureIngress(ingress)
