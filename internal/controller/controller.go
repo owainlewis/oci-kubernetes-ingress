@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -166,23 +165,10 @@ func (c *OCIController) syncHandler(key string) error {
 	}
 
 	nodes, err := c.nodeLister.List(labels.Everything())
-	for _, node := range nodes {
-		ip := getNodeInternalIPAddress(node)
-		glog.Infof("Node IP: %s", ip)
+	if err != nil {
+		return err
 	}
 
-	c.ingressManager.EnsureIngress(ingress)
+	c.ingressManager.EnsureIngress(ingress, nodes)
 	return nil
-}
-
-// getNodeInternalIPAddress will extract the OCI internal node IP address
-// for a given node. Since it is impossible to launch an instance without
-// an internal (private) IP, we can be sure that one exists.
-func getNodeInternalIPAddress(node *core_v1.Node) string {
-	for _, addr := range node.Status.Addresses {
-		if addr.Type == core_v1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return ""
 }
