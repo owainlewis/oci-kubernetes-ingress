@@ -9,7 +9,7 @@ import (
 // Manager transforms ingress objects into OCI load balancer specifications
 // and ensures that the desired and actual state of the world align.
 type Manager interface {
-	EnsureIngress(ingress *v1beta1.Ingress, nodes []core_v1.Node)
+	EnsureIngress(ingress *v1beta1.Ingress, nodes []*core_v1.Node)
 	EnsureIngressDeleted(ingress *v1beta1.Ingress)
 }
 
@@ -23,7 +23,7 @@ func NewManager() Manager {
 
 // EnsureIngress will ensure that the observed Ingress object state is reflected
 // in OCI
-func (manager *defaultManager) EnsureIngress(ingress *v1beta1.Ingress, nodes []core_v1.Node) {
+func (manager *defaultManager) EnsureIngress(ingress *v1beta1.Ingress, nodes []*core_v1.Node) {
 	glog.Infof("Ensuring ingress")
 	glog.Infof("Ingress Spec: %+v", ingress.Spec)
 }

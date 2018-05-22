@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/owainlewis/oci-ingress/internal/config"
 	"github.com/owainlewis/oci-ingress/internal/controller"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -16,13 +17,21 @@ import (
 func main() {
 	kubeconfig := flag.String("kubeconfig", "", "Path to a kubeconfig file")
 	namespace := flag.String("namespace", "default", "Namespace to run in")
+	configfile := flag.String("config", "/opt/config/oci/config.yml", "Path to the ingress controller configuration file")
 
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
+	config, err := config.Read(*configfile)
+	if err != nil {
+		glog.Fatalf("Failed to load configuration: %s", err)
+	}
+
+	glog.Infof("Configuration %+v", config)
+
 	client, err := buildClient(*kubeconfig)
 	if err != nil {
-		glog.Fatalf("Failed to create kubernetes client: %v", err)
+		glog.Fatalf("Failed to create kubernetes client: %s", err)
 	}
 
 	informerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
