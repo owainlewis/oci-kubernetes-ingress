@@ -26,7 +26,7 @@ func main() {
 
 	_, err := config.Read(*configfile)
 	if err != nil {
-		log.Fatal("Failed to load configuration: %s", err)
+		log.Fatalf("Failed to load configuration: %s", err)
 	}
 
 	client, err := buildClient(*kubeconfig)
