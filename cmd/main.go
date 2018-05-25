@@ -12,6 +12,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	kubeinformers "k8s.io/client-go/informers"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -22,12 +24,10 @@ func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	config, err := config.Read(*configfile)
+	_, err := config.Read(*configfile)
 	if err != nil {
-		glog.Fatalf("Failed to load configuration: %s", err)
+		log.Fatal("Failed to load configuration: %s", err)
 	}
-
-	glog.Infof("Configuration %+v", config)
 
 	client, err := buildClient(*kubeconfig)
 	if err != nil {

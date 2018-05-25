@@ -16,8 +16,8 @@ type Manager interface {
 type defaultManager struct {
 }
 
-// NewManager constructs a new ingress Manager
-func NewManager() Manager {
+// NewDefaultManager constructs a new ingress Manager
+func NewDefaultManager() Manager {
 	return &defaultManager{}
 }
 

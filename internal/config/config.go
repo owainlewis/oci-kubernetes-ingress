@@ -17,9 +17,25 @@ type AuthConfig struct {
 	Passphrase  string `yaml:"passphrase"`
 }
 
+// LoadbalancerConfig ...
+type LoadbalancerConfig struct {
+	Compartment string `yaml:"compartment"`
+}
+
 // Config defines the configuration needed for the OCI ingress controller
 type Config struct {
+	//Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
 	Auth AuthConfig `yaml:"auth"`
+}
+
+// ParseConfig will parse the contents of a file into a Config object
+func parseConfig(c []byte) (*Config, error) {
+	cfg := &Config{}
+	if err := yaml.Unmarshal(c, &cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 // Read will try and parse a config object a file
@@ -29,11 +45,5 @@ func Read(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	cfg := &Config{}
-	err = yaml.Unmarshal(b, &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
+	return parseConfig(b)
 }

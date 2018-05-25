@@ -28,6 +28,7 @@ type OCIController struct {
 	ingressSynced    cache.InformerSynced
 	ingressManager   ingress.Manager
 	nodeLister       lister_v1.NodeLister
+	serviceLister    lister_v1.ServiceLister
 
 	namespace string
 }
@@ -37,9 +38,7 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
 	ingressInformer := informerFactory.Extensions().V1beta1().Ingresses()
-
-	// serviceInformer := informerFactory.Core().V1().Services()
-
+	serviceInformer := informerFactory.Core().V1().Services()
 	nodeInformer := informerFactory.Core().V1().Nodes()
 
 	ctrl := &OCIController{
@@ -47,8 +46,9 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 		ingressWorkQueue: queue,
 		ingressLister:    ingressInformer.Lister(),
 		ingressSynced:    ingressInformer.Informer().HasSynced,
-		ingressManager:   ingress.NewManager(),
+		ingressManager:   ingress.NewDefaultManager(),
 		nodeLister:       nodeInformer.Lister(),
+		serviceLister:    serviceInformer.Lister(),
 
 		namespace: namespace,
 	}

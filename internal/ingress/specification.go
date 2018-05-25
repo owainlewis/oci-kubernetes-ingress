@@ -9,11 +9,19 @@ type Specification struct {
 	Name    string
 	Shape   string
 	Subnets []string
-	Public  bool
 }
 
 // NewSpecificationFromIngress creates a new load balancer specification for a
 // given Ingress
 func NewSpecificationFromIngress(ingress *v1beta1.Ingress) Specification {
 	return Specification{}
+}
+
+func (spec *Specification) getBackendSets() {
+}
+
+func (spec *Specification) getListeners() {
+}
+
+func (spec *Specification) getHostNames() {
 }
