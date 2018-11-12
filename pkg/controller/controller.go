@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kubeinformers "k8s.io/client-go/informers"
 
-	"github.com/owainlewis/oci-ingress/internal/ingress"
+	"github.com/owainlewis/oci-kubernetes-ingress/pkg/ingress"
 )
 
 // OCIController is the definition for an OCI Ingress Controller
