@@ -1,9 +1,6 @@
-# Ingress OCI
+# OCI Kubernetes Ingress
 
-An [Ingress][0] Controller for Oracle Cloud Infrastructure. There are two load balancing strategies
-
-1. Nodeport (load balance across all nodes/nodeport pairs)
-2. PodIP (load balance across all the pod IPs that form a service object)
+An OCI [Ingress Controller][0] that allows the the OCI Load Balancer Service to be used as the ingress for a Kubernetes cluster running on OCI. It consumes Ingress objects and configures an OCI Load Balancer to distribute traffic to your Kubernetes Pods and Services.
 
 See [here][1] for more information about OCI path and virtual host based routing.
 
