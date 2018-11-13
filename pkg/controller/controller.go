@@ -164,7 +164,7 @@ func (c *OCIController) syncHandler(key string) error {
 		return nil
 	}
 
-	glog.Infof("Creating load balancer in namespace %s with name %s", namespace, name)
+	glog.Infof("Reconcile ingress in namespace '%s' for ingress '%s'", namespace, name)
 
 	ingr, err := c.ingressLister.Ingresses(namespace).Get(name)
 	if err != nil {
@@ -177,7 +177,6 @@ func (c *OCIController) syncHandler(key string) error {
 	}
 
 	// Convert to a specification
-
 	specification := ingress.NewSpecification(c.configuration, ingr, nodes)
 
 	err = c.ingressManager.EnsureIngress(specification)

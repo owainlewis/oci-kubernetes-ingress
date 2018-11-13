@@ -30,7 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %s", err)
 	}
-	glog.V(4).Infof("Using configuration %+v", configuration)
 
 	err = configuration.Validate()
 	if err != nil {

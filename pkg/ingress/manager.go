@@ -35,19 +35,20 @@ func NewDefaultManager(conf config.Config) (Manager, error) {
 // EnsureIngress will ensure that the observed Ingress object state is reflected
 // in OCI
 func (mgr *defaultManager) EnsureIngress(specification Specification) error {
-	glog.Infof("Ensuring ingress")
-	glog.Infof("Ingress Spec: %+v", specification)
-
+	glog.V(4).Infof("Ensuring ingress for specification: %s", specification.Ingress.Name)
 	// Check if a load balancer exists already for this ingress object
 	_, err := mgr.svc.GetLoadBalancer(specification.Config.Loadbalancer.Compartment, GetLoadBalancerUniqueName(specification.Ingress))
 	// We cannot find a load balancer for this ingress or something went wrong.
 	if err != nil {
 		// If no load balancer exists then create one
+		glog.V(4).Infof("Creating a new loadbalancer for specification: %s", specification.Ingress.Name)
 		_, err = mgr.svc.CreateLoadBalancer(specification)
 		return err
 	}
 
-	// If the load balancer exists update it if needed
+	// If the load balancer exists update it
+	glog.V(4).Infof("Updating load balancer for specification: %s", specification.Ingress.Name)
+
 	return nil
 }
 

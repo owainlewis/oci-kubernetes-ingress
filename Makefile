@@ -13,7 +13,8 @@ test:
 
 run:
 	go run cmd/main.go \
-		-kubeconfig=$$KUBECONFIG
+		-kubeconfig=$$KUBECONFIG \
+		-v=4
 
 deps:
 	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
