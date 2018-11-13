@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/oracle/oci-go-sdk/common"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
-	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

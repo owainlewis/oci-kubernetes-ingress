@@ -2,7 +2,7 @@ package ingress
 
 import (
 	"github.com/oracle/oci-go-sdk/loadbalancer"
-	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 )

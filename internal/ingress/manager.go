@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/golang/glog"
-	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
 	"k8s.io/api/extensions/v1beta1"
 )
 

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/pkg/controller"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
