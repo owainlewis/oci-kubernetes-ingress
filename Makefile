@@ -1,15 +1,23 @@
-PROJECT = oci-ingress
-REGISTRY ?= iad.ocir.io/oracle
-IMAGE := $(REGISTRY)/$(PROJECT)
+GOOS ?= linux
+ARCH ?= amd64
 
-.PHONY: test
+VERSION := $(shell git rev-parse --short=8 HEAD)
+
+all: deps build test
+
+build:
+	VERSION=$(VERSION) hack/build.sh
+
 test:
 	go test ./...
 
-.PHONY: run
 run:
-	go run cmd/main.go -kubeconfig=/Users/owainlewis/.kube/config -config=config.yml
+	go run cmd/main.go \
+		-kubeconfig=/Users/owainlewis/.kube/config \
+		-config=config.yml
 
-.PHONY: deps
 deps:
-	dep ensure -vendor-only
+	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+	dep ensure -v
+	dep prune -v
+	find vendor -name '*_test.go' -delete

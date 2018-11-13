@@ -26,3 +26,7 @@
 [[constraint]]
   name = "k8s.io/client-go"
   version = "9.0.0"
+
+  [[constraint]]
+  name = "github.com/oracle/oci-go-sdk"
+  version = "3.0.0"

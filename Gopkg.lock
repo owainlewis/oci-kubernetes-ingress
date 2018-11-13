@@ -135,6 +135,17 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:c2fe6ab64d6b7b467b38cb04a41ec2fe41c3cbfa776b5da78d0a0193aeeb448a"
+  name = "github.com/oracle/oci-go-sdk"
+  packages = [
+    "common",
+    "loadbalancer",
+  ]
+  pruneopts = "NUT"
+  revision = "3fdba2e4d1424ab7b77853c633b40caf31ff9ceb"
+  version = "v3.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3bf17a6e6eaa6ad24152148a631d18662f7212e21637c2699bff3369b7f00fa2"
   name = "github.com/petar/GoLLRB"
@@ -503,6 +514,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/golang/glog",
+    "github.com/oracle/oci-go-sdk/common",
+    "github.com/oracle/oci-go-sdk/loadbalancer",
     "github.com/sirupsen/logrus",
     "gopkg.in/yaml.v2",
     "k8s.io/api/core/v1",
