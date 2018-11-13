@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"log"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/controller"
 	"k8s.io/client-go/kubernetes"
@@ -13,7 +13,7 @@ import (
 
 	kubeinformers "k8s.io/client-go/informers"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 
 	client, err := buildClient(*kubeconfig)
 	if err != nil {
-		glog.Fatalf("Failed to create kubernetes client: %s", err)
+		logrus.Fatalf("Failed to create kubernetes client: %s", err)
 	}
 
 	informerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
@@ -42,7 +42,7 @@ func main() {
 
 	go informerFactory.Start(stopCh)
 
-	glog.Info("Starting Controller")
+	logrus.Info("Starting Controller")
 	ctrl.Run(1, stopCh)
 }
 
@@ -50,6 +50,7 @@ func buildClient(kubeconfig string) (kubernetes.Interface, error) {
 	var config *rest.Config
 	var err error
 	if kubeconfig != "" {
+		logrus.Info("Using local kubeconfig")
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	} else {
 		config, err = rest.InClusterConfig()
