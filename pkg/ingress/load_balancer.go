@@ -40,12 +40,12 @@ func (svc *LoadBalancerService) CreateLoadBalancer(specification Specification) 
 			CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
 			DisplayName:   common.String(GetLoadBalancerUniqueName(specification.Ingress)),
 			ShapeName:     common.String(specification.GetLoadBalancerShape()),
-			IsPrivate:     common.Bool(false),
+			IsPrivate:     common.Bool(specification.LoadBalancerIsPrivate()),
 			SubnetIds:     specification.GetLoadBalancerSubnets(),
-
-			//BackendSets:   spec.BackendSets,
-			//Listeners:     spec.Listeners,
-			//Certificates:  certs,
+			// PathRouteSets:
+			// BackendSets:   spec.BackendSets,
+			// Listeners:     spec.Listeners,
+			// Certificates:  certs,
 		},
 	}
 

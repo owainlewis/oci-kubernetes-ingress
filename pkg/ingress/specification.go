@@ -1,15 +1,18 @@
 package ingress
 
 import (
+	"github.com/oracle/oci-go-sdk/loadbalancer"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 )
 
 const (
-	// IngressAnnotationLoadBalancerInternal is an annotation for
-	// specifying that a load balancer should be internal.
-	IngressAnnotationLoadBalancerInternal = "ingress.beta.kubernetes.io/oci-load-balancer-internal"
+	// IngressAnnotationLoadBalancerVisibility is an annotation for
+	// specifying that a load balancer should be public or private.
+	// By default all load balancers will be public.
+	// Values an be one of "public" or "private"
+	IngressAnnotationLoadBalancerVisibility = "ingress.beta.kubernetes.io/oci-load-balancer-visibility"
 	// IngressAnnotationLoadBalancerShape is an annotation for
 	// specifying the shape of a load balancer. Available shapes include
 	// "100Mbps", "400Mbps", and "8000Mbps".
@@ -51,10 +54,35 @@ func (spec Specification) GetLoadBalancerSubnets() []string {
 }
 
 // GetLoadBalancerCompartment will return the compartment in which a load balancer should exist
-// based on either configuration or annotations.
+// based on either configuration or (TODO) annotations.
 func (spec Specification) GetLoadBalancerCompartment() string {
-	// TODO check annotation here and pull from config
 	return spec.Config.Loadbalancer.Compartment
+}
+
+// LoadBalancerIsPrivate checks if a load balancer should be declared private.
+// Visibility can be controlled by annotations on the ingress object.
+func (spec Specification) LoadBalancerIsPrivate() bool {
+	return getIngressAnnotationOrDefault(spec.Ingress, IngressAnnotationLoadBalancerVisibility, "public") == "private"
+}
+
+// GetListeners returns a list of Listeners to create for this specification.
+func (spec Specification) GetListeners() []loadbalancer.Listener {
+	return []loadbalancer.Listener{}
+}
+
+// GetBackendSets returns a list of the Backends we need to create for this specification.
+func (spec Specification) GetBackendSets() []loadbalancer.Backend {
+	return []loadbalancer.Backend{}
+}
+
+// GetPathRouteSets returns a list of the PathRouteSets we need to create for this specification.
+func (spec Specification) GetPathRouteSets() []loadbalancer.PathRouteSet {
+	return []loadbalancer.PathRouteSet{}
+}
+
+// GetCertificates returns a list of the Certificates we need to create for this specification.
+func (spec Specification) GetCertificates() []loadbalancer.Certificate {
+	return []loadbalancer.Certificate{}
 }
 
 func getIngressAnnotationOrDefault(ingress *v1beta1.Ingress, k, defaultValue string) string {
