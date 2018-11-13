@@ -19,7 +19,7 @@ import (
 func main() {
 	kubeconfig := flag.String("kubeconfig", "", "Path to a kubeconfig file")
 	namespace := flag.String("namespace", "default", "Namespace to run in")
-	configfile := flag.String("config", "/opt/config/oci/config.yml", "Path to the ingress controller configuration file")
+	configfile := flag.String("config", "config.yaml", "Path to the ingress controller configuration file")
 
 	flag.Set("logtostderr", "true")
 	flag.Parse()
