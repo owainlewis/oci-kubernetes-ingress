@@ -1,6 +1,8 @@
 package ingress
 
 import (
+	"errors"
+
 	"github.com/golang/glog"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -9,28 +11,45 @@ import (
 // Manager transforms ingress objects into OCI load balancer specifications
 // and ensures that the desired and actual state of the world align.
 type Manager interface {
-	EnsureIngress(ingress *v1beta1.Ingress, nodes []*core_v1.Node)
-	EnsureIngressDeleted(ingress *v1beta1.Ingress)
+	EnsureIngress(specification Specification) error
+	EnsureIngressDeleted(ingress *v1beta1.Ingress) error
 }
 
 type defaultManager struct {
+	svc *LoadBalancerService
 }
 
 // NewDefaultManager constructs a new ingress Manager
-func NewDefaultManager() Manager {
-	return &defaultManager{}
+func NewDefaultManager() (Manager, error) {
+	svc, err := NewLoadBalancerService()
+	if err != nil {
+		return nil, err
+	}
+	return &defaultManager{
+		svc: svc,
+	}, nil
 }
 
 // EnsureIngress will ensure that the observed Ingress object state is reflected
 // in OCI
-func (manager *defaultManager) EnsureIngress(ingress *v1beta1.Ingress, nodes []*core_v1.Node) {
+func (mgr *defaultManager) EnsureIngress(specification Specification) error {
 	glog.Infof("Ensuring ingress")
-	glog.Infof("Ingress Spec: %+v", ingress.Spec)
+	glog.Infof("Ingress Spec: %+v", specification)
+
+	_, err := mgr.svc.CreateLoadBalancer(specification)
+	return err
 }
 
 // EnsureIngressDeleted will ensure that an ingress object is removed from OCI
-func (manager *defaultManager) EnsureIngressDeleted(ingress *v1beta1.Ingress) {
-	glog.Infof("Deleting ingress")
+func (mgr *defaultManager) EnsureIngressDeleted(ingress *v1beta1.Ingress) error {
+	if ingress == nil {
+		return errors.New("Trying to delete ingress which is nil")
+	}
+
+	name := GetLoadBalancerUniqueName(ingress)
+
+	glog.Infof("Deleting ingress %s", name)
+	return mgr.svc.DeleteLoadBalancer(name)
 }
 
 // getNodeInternalIPAddress will extract the OCI internal node IP address

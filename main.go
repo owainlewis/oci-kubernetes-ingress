@@ -45,8 +45,14 @@ func (svc *loadBalancerService) Create() {
 	svc.client.CreateLoadBalancer(ctx, request)
 }
 
-func (svc *loadBalancerService) Delete() {
+// Delete a load balancer by OCID (ID).
+func (svc *loadBalancerService) Delete(id string) (loadbalancer.DeleteLoadBalancerResponse, error) {
+	request := loadbalancer.DeleteLoadBalancerRequest{
+		LoadBalancerId: common.String(id),
+	}
 
+	ctx := context.Background()
+	return svc.client.DeleteLoadBalancer(ctx, request)
 }
 
 func (svc *loadBalancerService) Update() {

@@ -41,12 +41,14 @@ func NewOCIController(client kubernetes.Interface, namespace string, informerFac
 	serviceInformer := informerFactory.Core().V1().Services()
 	nodeInformer := informerFactory.Core().V1().Nodes()
 
+	ingressManager, _ := ingress.NewDefaultManager()
+
 	ctrl := &OCIController{
 		client:           client,
 		ingressWorkQueue: queue,
 		ingressLister:    ingressInformer.Lister(),
 		ingressSynced:    ingressInformer.Informer().HasSynced,
-		ingressManager:   ingress.NewDefaultManager(),
+		ingressManager:   ingressManager,
 		nodeLister:       nodeInformer.Lister(),
 		serviceLister:    serviceInformer.Lister(),
 
@@ -159,7 +161,9 @@ func (c *OCIController) syncHandler(key string) error {
 		return nil
 	}
 
-	ingress, err := c.ingressLister.Ingresses(namespace).Get(name)
+	glog.Infof("Creating load balancer in namespace %s with name %s", namespace, name)
+
+	ingr, err := c.ingressLister.Ingresses(namespace).Get(name)
 	if err != nil {
 		return err
 	}
@@ -169,6 +173,16 @@ func (c *OCIController) syncHandler(key string) error {
 		return err
 	}
 
-	c.ingressManager.EnsureIngress(ingress, nodes)
-	return nil
+	// Convert to a specification
+
+	specName := ingress.GetLoadBalancerUniqueName(ingr)
+
+	specification := ingress.NewSpecification(specName, ingr, nodes)
+
+	err = c.ingressManager.EnsureIngress(specification)
+	if err != nil {
+		glog.Infof("Failed to ensure ingress %s", err)
+	}
+
+	return err
 }
