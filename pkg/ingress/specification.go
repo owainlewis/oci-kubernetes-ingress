@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 )
@@ -18,19 +19,21 @@ const (
 	IngressAnnotationLoadBalancerCompartment = "ingress.beta.kubernetes.io/oci-load-balancer-compartment"
 )
 
+const defaultLoadBalancerShape = "100Mbps"
+
 // Specification describes the desired state of the OCI load balancer.
 // It provides a mapping bridge between K8s and OCI LB.
 type Specification struct {
-	Name    string
+	Config  config.Config
 	Ingress *v1beta1.Ingress
 	Nodes   []*core_v1.Node
 }
 
 // NewSpecification creates a new load balancer specification for a
 // given Ingress
-func NewSpecification(name string, ingress *v1beta1.Ingress, nodes []*core_v1.Node) Specification {
+func NewSpecification(configuration config.Config, ingress *v1beta1.Ingress, nodes []*core_v1.Node) Specification {
 	return Specification{
-		Name:    name,
+		Config:  configuration,
 		Ingress: ingress,
 		Nodes:   nodes,
 	}
@@ -39,23 +42,19 @@ func NewSpecification(name string, ingress *v1beta1.Ingress, nodes []*core_v1.No
 // GetLoadBalancerShape will return the load balancer shape required.
 // The shape can be controlled by setting ingress object annotations.
 func (spec Specification) GetLoadBalancerShape() string {
-	return getIngressAnnotationOrDefault(spec.Ingress, IngressAnnotationLoadBalancerShape, "100Mbps")
+	return getIngressAnnotationOrDefault(spec.Ingress, IngressAnnotationLoadBalancerShape, defaultLoadBalancerShape)
 }
 
 // GetLoadBalancerSubnets will return a list of load balancer subnets based on configuration.
 func (spec Specification) GetLoadBalancerSubnets() []string {
-	// TODO pull from config
-	return []string{
-		"ocid1.subnet.oc1.uk-london-1.aaaaaaaaqalydfvmgw7pdw3tittizpoyondib7hedwayyswrrfcrsmc4j7dq",
-		"ocid1.subnet.oc1.uk-london-1.aaaaaaaa2tqtopdpynhbjglh3szj2j6h6pwwwohrcanbeyj6dpbiboyuvrza",
-	}
+	return spec.Config.Loadbalancer.Subnets
 }
 
 // GetLoadBalancerCompartment will return the compartment in which a load balancer should exist
 // based on either configuration or annotations.
 func (spec Specification) GetLoadBalancerCompartment() string {
 	// TODO check annotation here and pull from config
-	return "ocid1.compartment.oc1..aaaaaaaaob4ckouj3cjmf36ifjkff33wvln5fnnarumafqzpqq7tmbig2n5q"
+	return spec.Config.Loadbalancer.Compartment
 }
 
 func getIngressAnnotationOrDefault(ingress *v1beta1.Ingress, k, defaultValue string) string {

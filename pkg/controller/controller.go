@@ -178,9 +178,7 @@ func (c *OCIController) syncHandler(key string) error {
 
 	// Convert to a specification
 
-	specName := ingress.GetLoadBalancerUniqueName(ingr)
-
-	specification := ingress.NewSpecification(specName, ingr, nodes)
+	specification := ingress.NewSpecification(c.configuration, ingr, nodes)
 
 	err = c.ingressManager.EnsureIngress(specification)
 	if err != nil {

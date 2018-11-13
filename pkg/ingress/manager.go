@@ -16,7 +16,8 @@ type Manager interface {
 }
 
 type defaultManager struct {
-	svc *LoadBalancerService
+	conf config.Config
+	svc  *LoadBalancerService
 }
 
 // NewDefaultManager constructs a new ingress Manager
@@ -26,7 +27,8 @@ func NewDefaultManager(conf config.Config) (Manager, error) {
 		return nil, err
 	}
 	return &defaultManager{
-		svc: svc,
+		conf: conf,
+		svc:  svc,
 	}, nil
 }
 
@@ -37,16 +39,16 @@ func (mgr *defaultManager) EnsureIngress(specification Specification) error {
 	glog.Infof("Ingress Spec: %+v", specification)
 
 	// Check if a load balancer exists already for this ingress object
-	_, err := mgr.svc.GetLoadBalancer(specification)
+	_, err := mgr.svc.GetLoadBalancer(specification.Config.Loadbalancer.Compartment, GetLoadBalancerUniqueName(specification.Ingress))
+	// We cannot find a load balancer for this ingress or something went wrong.
 	if err != nil {
+		// If no load balancer exists then create one
+		_, err = mgr.svc.CreateLoadBalancer(specification)
 		return err
 	}
 
 	// If the load balancer exists update it if needed
-
-	// If no load balancer exists then create one
-	_, err = mgr.svc.CreateLoadBalancer(specification)
-	return err
+	return nil
 }
 
 // EnsureIngressDeleted will ensure that an ingress object is removed from OCI
@@ -58,5 +60,5 @@ func (mgr *defaultManager) EnsureIngressDeleted(ingress *v1beta1.Ingress) error 
 	name := GetLoadBalancerUniqueName(ingress)
 
 	glog.Infof("Deleting ingress %s", name)
-	return mgr.svc.DeleteLoadBalancer(name)
+	return mgr.svc.DeleteLoadBalancer(mgr.conf.Loadbalancer.Compartment, name)
 }

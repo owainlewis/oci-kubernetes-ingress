@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/controller"
 	"k8s.io/client-go/kubernetes"
@@ -12,8 +13,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	kubeinformers "k8s.io/client-go/informers"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -27,16 +26,21 @@ func main() {
 	flag.Parse()
 
 	// Load configuration
-	configuration, err := config.Read(*configfile)
+	configuration, err := config.FromFile(*configfile)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %s", err)
 	}
-	logrus.Debugf("Using configuration %+v", configuration)
+	glog.V(4).Infof("Using configuration %+v", configuration)
+
+	err = configuration.Validate()
+	if err != nil {
+		glog.Fatalf("Invalid configuration: %s", err)
+	}
 
 	// Load Kubernetes client
 	client, err := buildClient(*kubeconfig)
 	if err != nil {
-		logrus.Fatalf("Failed to create kubernetes client: %s", err)
+		glog.Fatalf("Failed to create kubernetes client: %s", err)
 	}
 
 	// Init controllers
@@ -46,7 +50,7 @@ func main() {
 	stopCh := make(chan struct{})
 	go informerFactory.Start(stopCh)
 
-	logrus.Info("Starting OCI Ingress Controller")
+	glog.V(4).Info("Starting OCI Ingress Controller")
 	ctrl.Run(1, stopCh)
 }
 
@@ -56,7 +60,7 @@ func buildClient(kubeconfig string) (kubernetes.Interface, error) {
 	var config *rest.Config
 	var err error
 	if kubeconfig != "" {
-		logrus.Debugf("Using local kubeconfig at path %s", kubeconfig)
+		glog.V(4).Infof("Using local kubeconfig at path %s", kubeconfig)
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	} else {
 		config, err = rest.InClusterConfig()

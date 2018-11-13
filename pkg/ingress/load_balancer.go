@@ -27,19 +27,18 @@ func NewLoadBalancerService(conf config.Config) (*LoadBalancerService, error) {
 
 // CreateLoadBalancer will create a new OCI load balancer to handle ingress traffic.
 func (svc *LoadBalancerService) CreateLoadBalancer(specification Specification) (loadbalancer.CreateLoadBalancerResponse, error) {
-	details := loadbalancer.CreateLoadBalancerDetails{
-		CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
-		DisplayName:   common.String(specification.Name),
-		ShapeName:     common.String(specification.GetLoadBalancerShape()),
-		IsPrivate:     common.Bool(false),
-		SubnetIds:     specification.GetLoadBalancerSubnets(),
-		//BackendSets:   spec.BackendSets,
-		//Listeners:     spec.Listeners,
-		//Certificates:  certs,
-	}
-
 	request := loadbalancer.CreateLoadBalancerRequest{
-		CreateLoadBalancerDetails: details,
+		CreateLoadBalancerDetails: loadbalancer.CreateLoadBalancerDetails{
+			CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
+			DisplayName:   common.String(GetLoadBalancerUniqueName(specification.Ingress)),
+			ShapeName:     common.String(specification.GetLoadBalancerShape()),
+			IsPrivate:     common.Bool(false),
+			SubnetIds:     specification.GetLoadBalancerSubnets(),
+
+			//BackendSets:   spec.BackendSets,
+			//Listeners:     spec.Listeners,
+			//Certificates:  certs,
+		},
 	}
 
 	ctx := context.Background()
@@ -47,23 +46,25 @@ func (svc *LoadBalancerService) CreateLoadBalancer(specification Specification) 
 }
 
 // DeleteLoadBalancer will delete a load balancer from OCI.
-func (svc *LoadBalancerService) DeleteLoadBalancer(name string) error {
-	//request := loadbalancer.DeleteLoadBalancerRequest{
-	//LoadBalancerId: common.String(id),
-	//}
+func (svc *LoadBalancerService) DeleteLoadBalancer(compartment, name string) error {
+	lb, err := svc.GetLoadBalancer(compartment, name)
+	if err != nil {
+		return err
+	}
 
-	//ctx := context.Background()
-	// _, err := svc.client.DeleteLoadBalancer(ctx, request)
-	// return err
-
-	return nil
+	ctx := context.Background()
+	_, err = svc.client.DeleteLoadBalancer(ctx, loadbalancer.DeleteLoadBalancerRequest{
+		LoadBalancerId: lb.Id,
+	})
+	return err
 }
 
 // GetLoadBalancer will find an OCI load balancer based on a specification.
-func (svc *LoadBalancerService) GetLoadBalancer(specification Specification) (loadbalancer.LoadBalancer, error) {
+// TODO we are relying on display name which is not unique in OCI
+func (svc *LoadBalancerService) GetLoadBalancer(compartment string, name string) (loadbalancer.LoadBalancer, error) {
 	request := loadbalancer.ListLoadBalancersRequest{
-		CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
-		DisplayName:   common.String(specification.Name),
+		CompartmentId: common.String(compartment),
+		DisplayName:   common.String(name),
 	}
 
 	ctx := context.Background()
@@ -73,10 +74,10 @@ func (svc *LoadBalancerService) GetLoadBalancer(specification Specification) (lo
 	}
 
 	for _, lb := range response.Items {
-		if common.PointerString(lb.DisplayName) == specification.Name {
+		if lb.DisplayName != nil && *lb.DisplayName == name {
 			return lb, nil
 		}
 	}
 
-	return loadbalancer.LoadBalancer{}, fmt.Errorf("Could not find load balancer with display name %s", specification.Name)
+	return loadbalancer.LoadBalancer{}, fmt.Errorf("Could not find load balancer with display name %s", name)
 }

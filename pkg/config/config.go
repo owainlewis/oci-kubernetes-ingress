@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -21,19 +23,37 @@ type AuthConfig struct {
 
 // LoadbalancerConfig ...
 type LoadbalancerConfig struct {
-	Subnets []string `yaml:"subnets"`
+	Compartment string   `yaml:"compartment"`
+	Subnets     []string `yaml:"subnets"`
 }
 
-// Config defines the configuration needed for the OCI ingress controller
+// Config defines the configuration needed for the OCI ingress controller.
 type Config struct {
-	//Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
 	Auth         AuthConfig         `yaml:"auth"`
-	Compartment  string             `yaml:"compartment"`
 	Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
 }
 
-// ParseConfig will parse the contents of a file into a Config object
-func parseConfig(c []byte) (*Config, error) {
+// Validate performs basic structural validation on the configuration struct.
+func (c Config) Validate() error {
+	errs := []string{}
+
+	if c.Loadbalancer.Compartment == "" {
+		errs = append(errs, "Compartment must be declared for loadbalancer")
+	}
+
+	if len(c.Loadbalancer.Subnets) < 2 {
+		errs = append(errs, "At least two subnets are required")
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	return errors.New(strings.Join(errs, ", "))
+}
+
+// Parse will parse a bytestring representation of a configuration struct into a Config object.
+func Parse(c []byte) (*Config, error) {
 	cfg := &Config{}
 	if err := yaml.Unmarshal(c, &cfg); err != nil {
 		return nil, err
@@ -42,12 +62,12 @@ func parseConfig(c []byte) (*Config, error) {
 	return cfg, nil
 }
 
-// Read will try and parse a config object a file
-func Read(filename string) (*Config, error) {
+// FromFile will try and parse a config object into a file.
+func FromFile(filename string) (*Config, error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseConfig(b)
+	return Parse(b)
 }
