@@ -17,11 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kubeinformers "k8s.io/client-go/informers"
 
+	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/pkg/ingress"
 )
 
 // OCIController is the definition for an OCI Ingress Controller
 type OCIController struct {
+	configuration    config.Config
 	client           kubernetes.Interface
 	ingressLister    lister_v1beta1.IngressLister
 	ingressWorkQueue workqueue.RateLimitingInterface
@@ -34,16 +36,17 @@ type OCIController struct {
 }
 
 // NewOCIController will create a new OCI Ingress Controller
-func NewOCIController(client kubernetes.Interface, namespace string, informerFactory kubeinformers.SharedInformerFactory) *OCIController {
+func NewOCIController(conf config.Config, client kubernetes.Interface, namespace string, informerFactory kubeinformers.SharedInformerFactory) *OCIController {
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
 	ingressInformer := informerFactory.Extensions().V1beta1().Ingresses()
 	serviceInformer := informerFactory.Core().V1().Services()
 	nodeInformer := informerFactory.Core().V1().Nodes()
 
-	ingressManager, _ := ingress.NewDefaultManager()
+	ingressManager, _ := ingress.NewDefaultManager(conf)
 
 	ctrl := &OCIController{
+		configuration:    conf,
 		client:           client,
 		ingressWorkQueue: queue,
 		ingressLister:    ingressInformer.Lister(),

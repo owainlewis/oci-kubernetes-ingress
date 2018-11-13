@@ -1,2 +1,22 @@
----
 auth:
+  region: us-phoenix-1
+  tenancy: ocid1.tenancy.oc1..
+  user: ocid1.user.oc1..
+  key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    <snip>
+    -----END RSA PRIVATE KEY-----
+  passphrase: supersecretpassword
+  fingerprint: 8c:bf:17:7b:5f:e0:7d:13:75:11:d6:39:0d:e2:84:74
+
+useInstancePrincipals: false
+
+# Specifies which compartment to create a load balancer in (by default your cluster compartment should be set)
+compartment: ocid1.compartment.oc1..
+
+loadBalancer:
+  # Controls the subnets in which load balancers are provisioned.
+  # A minimum of two must be declared.
+  subnets:
+    - ocid1.subnet.oc1.phx.
+    - ocid1.subnet.oc1.phx.

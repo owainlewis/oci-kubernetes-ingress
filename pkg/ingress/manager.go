@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/golang/glog"
-	core_v1 "k8s.io/api/core/v1"
+	"github.com/owainlewis/oci-kubernetes-ingress/pkg/config"
 	"k8s.io/api/extensions/v1beta1"
 )
 
@@ -20,8 +20,8 @@ type defaultManager struct {
 }
 
 // NewDefaultManager constructs a new ingress Manager
-func NewDefaultManager() (Manager, error) {
-	svc, err := NewLoadBalancerService()
+func NewDefaultManager(conf config.Config) (Manager, error) {
+	svc, err := NewLoadBalancerService(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,16 @@ func (mgr *defaultManager) EnsureIngress(specification Specification) error {
 	glog.Infof("Ensuring ingress")
 	glog.Infof("Ingress Spec: %+v", specification)
 
-	_, err := mgr.svc.CreateLoadBalancer(specification)
+	// Check if a load balancer exists already for this ingress object
+	_, err := mgr.svc.GetLoadBalancer(specification)
+	if err != nil {
+		return err
+	}
+
+	// If the load balancer exists update it if needed
+
+	// If no load balancer exists then create one
+	_, err = mgr.svc.CreateLoadBalancer(specification)
 	return err
 }
 
@@ -50,16 +59,4 @@ func (mgr *defaultManager) EnsureIngressDeleted(ingress *v1beta1.Ingress) error 
 
 	glog.Infof("Deleting ingress %s", name)
 	return mgr.svc.DeleteLoadBalancer(name)
-}
-
-// getNodeInternalIPAddress will extract the OCI internal node IP address
-// for a given node. Since it is impossible to launch an instance without
-// an internal (private) IP, we can be sure that one exists.
-func getNodeInternalIPAddress(node *core_v1.Node) string {
-	for _, addr := range node.Status.Addresses {
-		if addr.Type == core_v1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return ""
 }

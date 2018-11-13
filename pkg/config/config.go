@@ -6,6 +6,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Configuration settings for OCI authentication, load balancers etc
+
 // AuthConfig holds the configuration required for communicating with the OCI
 // API.
 type AuthConfig struct {
@@ -19,13 +21,15 @@ type AuthConfig struct {
 
 // LoadbalancerConfig ...
 type LoadbalancerConfig struct {
-	Compartment string `yaml:"compartment"`
+	Subnets []string `yaml:"subnets"`
 }
 
 // Config defines the configuration needed for the OCI ingress controller
 type Config struct {
 	//Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
-	Auth AuthConfig `yaml:"auth"`
+	Auth         AuthConfig         `yaml:"auth"`
+	Compartment  string             `yaml:"compartment"`
+	Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
 }
 
 // ParseConfig will parse the contents of a file into a Config object

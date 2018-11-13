@@ -16,41 +16,47 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func main() {
-	kubeconfig := flag.String("kubeconfig", "", "Path to a kubeconfig file")
-	namespace := flag.String("namespace", "default", "Namespace to run in")
-	configfile := flag.String("config", "config.yaml", "Path to the ingress controller configuration file")
+var (
+	kubeconfig = flag.String("kubeconfig", "", "Path to a kubeconfig file")
+	namespace  = flag.String("namespace", "default", "Namespace to run in")
+	configfile = flag.String("config", "config.yaml", "Path to the ingress controller configuration file")
+)
 
+func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	_, err := config.Read(*configfile)
+	// Load configuration
+	configuration, err := config.Read(*configfile)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %s", err)
 	}
+	logrus.Debugf("Using configuration %+v", configuration)
 
+	// Load Kubernetes client
 	client, err := buildClient(*kubeconfig)
 	if err != nil {
 		logrus.Fatalf("Failed to create kubernetes client: %s", err)
 	}
 
+	// Init controllers
 	informerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
-
-	ctrl := controller.NewOCIController(client, *namespace, informerFactory)
+	ctrl := controller.NewOCIController(*configuration, client, *namespace, informerFactory)
 
 	stopCh := make(chan struct{})
-
 	go informerFactory.Start(stopCh)
 
-	logrus.Info("Starting Controller")
+	logrus.Info("Starting OCI Ingress Controller")
 	ctrl.Run(1, stopCh)
 }
 
+// buildClient will construct a K8s clientset based on either local
+// or in-cluster configuration depending on context
 func buildClient(kubeconfig string) (kubernetes.Interface, error) {
 	var config *rest.Config
 	var err error
 	if kubeconfig != "" {
-		logrus.Info("Using local kubeconfig")
+		logrus.Debugf("Using local kubeconfig at path %s", kubeconfig)
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	} else {
 		config, err = rest.InClusterConfig()
