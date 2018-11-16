@@ -29,8 +29,9 @@ type LoadbalancerConfig struct {
 
 // Config defines the configuration needed for the OCI ingress controller.
 type Config struct {
-	Auth         AuthConfig         `yaml:"auth"`
-	Loadbalancer LoadbalancerConfig `yaml:"loadbalancer"`
+	Auth                  AuthConfig         `yaml:"auth"`
+	UseInstancePrincipals bool               `yaml:"useInstancePrincipals"`
+	Loadbalancer          LoadbalancerConfig `yaml:"loadbalancer"`
 }
 
 // Validate performs basic structural validation on the configuration struct.

@@ -2,77 +2,58 @@ package controller
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
-	"github.com/golang/glog"
-	"k8s.io/api/extensions/v1beta1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	lister_v1 "k8s.io/client-go/listers/core/v1"
-	lister_v1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 
-	"k8s.io/apimachinery/pkg/labels"
-	kubeinformers "k8s.io/client-go/informers"
-
+	"github.com/golang/glog"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/context"
 )
 
 // OCIController is the definition for an OCI Ingress Controller
 type OCIController struct {
-	configuration    config.Config
-	client           kubernetes.Interface
-	ingressLister    lister_v1beta1.IngressLister
-	ingressWorkQueue workqueue.RateLimitingInterface
-	ingressSynced    cache.InformerSynced
-	ingressManager   ingress.Manager
-	nodeLister       lister_v1.NodeLister
-	serviceLister    lister_v1.ServiceLister
-
-	namespace string
+	configuration config.Config
+	context       context.ControllerContext
+	workQueue     OCIWorkQueue
+	stopCh        chan struct{}
 }
 
 // NewOCIController will create a new OCI Ingress Controller
-func NewOCIController(conf config.Config, client kubernetes.Interface, namespace string, informerFactory kubeinformers.SharedInformerFactory) *OCIController {
-	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
-
-	ingressInformer := informerFactory.Extensions().V1beta1().Ingresses()
-	serviceInformer := informerFactory.Core().V1().Services()
-	nodeInformer := informerFactory.Core().V1().Nodes()
-
-	ingressManager, _ := ingress.NewDefaultManager(conf)
-
+func NewOCIController(conf config.Config, context context.ControllerContext, stopCh chan struct{}) *OCIController {
 	ctrl := &OCIController{
-		configuration:    conf,
-		client:           client,
-		ingressWorkQueue: queue,
-		ingressLister:    ingressInformer.Lister(),
-		ingressSynced:    ingressInformer.Informer().HasSynced,
-		ingressManager:   ingressManager,
-		nodeLister:       nodeInformer.Lister(),
-		serviceLister:    serviceInformer.Lister(),
-
-		namespace: namespace,
+		configuration: conf,
+		context:       context,
+		stopCh:        stopCh,
 	}
 
-	ingressInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctrl.enqueueIngress,
+	ctrl.workQueue = NewOCIWorkQueue(ctrl.sync)
+
+	// Ingress event handlers.
+	ctrl.context.InformerGroup.IngressInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			ingress := obj.(*extensions.Ingress)
+			glog.V(4).Infof("Ingress %s added. Enqueing work item.", ingress.Name)
+			ctrl.workQueue.Enqueue(ingress)
+		},
 		UpdateFunc: func(old, new interface{}) {
-			newIngress := new.(*v1beta1.Ingress)
-			oldIngress := old.(*v1beta1.Ingress)
-			if newIngress.ResourceVersion == oldIngress.ResourceVersion {
-				return
+			newIngress := new.(*extensions.Ingress)
+			ingressKeyName := fmt.Sprintf("%s/%s", newIngress.Namespace, newIngress.Name)
+
+			if reflect.DeepEqual(old, new) {
+				glog.V(4).Infof("Periodic enqueueing of %v", ingressKeyName)
+			} else {
+				glog.V(4).Infof("Ingress %s changed, enqueuing", ingressKeyName)
 			}
-			ctrl.enqueueIngress(new)
+
+			ctrl.workQueue.Enqueue(newIngress)
 		},
 		DeleteFunc: func(obj interface{}) {
-			ingress, ok := obj.(*v1beta1.Ingress)
-			if ok {
-				ctrl.ingressManager.EnsureIngressDeleted(ingress)
-			}
+			ingress := obj.(*extensions.Ingress)
+			glog.V(4).Infof("Ingress %s deleted. Enqueing work item", ingress.Name)
+			ctrl.workQueue.Enqueue(ingress)
 		},
 	})
 
@@ -80,109 +61,24 @@ func NewOCIController(conf config.Config, client kubernetes.Interface, namespace
 }
 
 // Run will start the OCI Ingress Controller
-func (c *OCIController) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer utilruntime.HandleCrash()
-	defer c.ingressWorkQueue.ShutDown()
+func (c *OCIController) Run() {
+	glog.Infof("Starting OCI Ingress controller")
+	go c.context.Run()
+	go c.workQueue.Run()
 
-	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting OCI Ingress Controller")
-	// Wait for the caches to be synced before starting workers
-	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.ingressSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
+	<-c.stopCh
+}
+
+// sync manages Ingress create/updates/delete events from the work queue.
+func (c *OCIController) sync(key string) error {
+	glog.V(4).Infof("\n\n\nSync Event: %v\n\n\n", key)
+
+	if !c.context.HasSynced() {
+		time.Sleep(5 * time.Second)
+		return fmt.Errorf("waiting for cache stores to sync")
 	}
 
-	glog.Info("Starting workers")
-	for i := 0; i < threadiness; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
-	}
-
-	<-stopCh
-	glog.Info("Shutting down workers")
+	time.Sleep(5 * time.Second)
 
 	return nil
-}
-
-func (c *OCIController) enqueueIngress(obj interface{}) {
-	var key string
-	var err error
-
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-
-	c.ingressWorkQueue.AddRateLimited(key)
-}
-
-// runWorker is a long-running function that will continually call the
-// processNextWorkItem function in order to read and process a message on the
-// workqueue.
-func (c *OCIController) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-// processNextWorkItem will read a single work item off the workqueue and
-// attempt to process it, by calling the syncHandler.
-func (c *OCIController) processNextWorkItem() bool {
-	obj, shutdown := c.ingressWorkQueue.Get()
-
-	if shutdown {
-		return false
-	}
-
-	err := func(obj interface{}) error {
-		defer c.ingressWorkQueue.Done(obj)
-		key, ok := obj.(string)
-		if !ok {
-			c.ingressWorkQueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in queue but got %#v", obj))
-			return nil
-		}
-		if err := c.syncHandler(key); err != nil {
-			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
-		}
-		c.ingressWorkQueue.Forget(obj)
-		glog.Infof("Successfully synced '%s'", key)
-		return nil
-	}(obj)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-		return true
-	}
-
-	return true
-}
-
-func (c *OCIController) syncHandler(key string) error {
-	// Convert the namespace/name string into a distinct namespace and name
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
-		return nil
-	}
-
-	glog.Infof("Reconcile ingress in namespace '%s' for ingress '%s'", namespace, name)
-
-	ingr, err := c.ingressLister.Ingresses(namespace).Get(name)
-	if err != nil {
-		return err
-	}
-
-	nodes, err := c.nodeLister.List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	// Convert to a specification
-	specification := ingress.NewSpecification(c.configuration, ingr, nodes)
-
-	err = c.ingressManager.EnsureIngress(specification)
-	if err != nil {
-		glog.Infof("Failed to ensure ingress %s", err)
-	}
-
-	return err
 }

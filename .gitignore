@@ -1,6 +1,4 @@
 vendor
-
-config.yml
 bin
-bin
-config.yaml
+cloud-provider.yaml
+cloud-provider.yaml

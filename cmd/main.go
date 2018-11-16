@@ -7,18 +7,23 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/context"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	kubeinformers "k8s.io/client-go/informers"
 )
 
 var (
-	kubeconfig = flag.String("kubeconfig", "", "Path to a kubeconfig file")
-	namespace  = flag.String("namespace", "default", "Namespace to run in")
-	configfile = flag.String("config", "config.yaml", "Path to the ingress controller configuration file")
+	kubeconfig = flag.String("kubeconfig", "",
+		"Path to a kubeconfig file")
+
+	namespace = flag.String("namespace", "default",
+		"Namespace to run in")
+
+	configfile = flag.String("config", "cloud-provider.yaml",
+		"Path to the OCI ingress controller configuration file.")
 )
 
 func main() {
@@ -37,20 +42,16 @@ func main() {
 	}
 
 	// Load Kubernetes client
-	client, err := buildClient(*kubeconfig)
+	kubeClient, err := buildClient(*kubeconfig)
 	if err != nil {
 		glog.Fatalf("Failed to create kubernetes client: %s", err)
 	}
 
-	// Init controllers
-	informerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
-	ctrl := controller.NewOCIController(*configuration, client, *namespace, informerFactory)
-
+	context := context.NewControllerContext(kubeClient, *namespace, 30*time.Second)
 	stopCh := make(chan struct{})
-	go informerFactory.Start(stopCh)
+	ctrl := controller.NewOCIController(*configuration, context, stopCh)
 
-	glog.V(4).Info("Starting OCI Ingress Controller")
-	ctrl.Run(1, stopCh)
+	ctrl.Run()
 }
 
 // buildClient will construct a K8s clientset based on either local

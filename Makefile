@@ -14,6 +14,7 @@ test:
 run:
 	go run cmd/main.go \
 		-kubeconfig=$$KUBECONFIG \
+		-logtostderr=true \
 		-v=4
 
 deps:

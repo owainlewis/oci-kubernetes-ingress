@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"context"
 	"errors"
 
 	"github.com/golang/glog"
@@ -36,13 +37,15 @@ func NewDefaultManager(conf config.Config) (Manager, error) {
 // in OCI
 func (mgr *defaultManager) EnsureIngress(specification Specification) error {
 	glog.V(4).Infof("Ensuring ingress for specification: %s", specification.Ingress.Name)
+
+	ctx := context.Background()
 	// Check if a load balancer exists already for this ingress object
-	_, err := mgr.svc.GetLoadBalancer(specification.Config.Loadbalancer.Compartment, GetLoadBalancerUniqueName(specification.Ingress))
+	_, err := mgr.svc.GetLoadBalancer(ctx, GetLoadBalancerUniqueName(specification.Ingress))
 	// We cannot find a load balancer for this ingress or something went wrong.
 	if err != nil {
 		// If no load balancer exists then create one
 		glog.V(4).Infof("Creating a new loadbalancer for specification: %s", specification.Ingress.Name)
-		_, err = mgr.svc.CreateLoadBalancer(specification)
+		_, err = mgr.svc.CreateAndAwaitLoadBalancer(ctx, specification)
 		return err
 	}
 
@@ -58,8 +61,10 @@ func (mgr *defaultManager) EnsureIngressDeleted(ingress *v1beta1.Ingress) error 
 		return errors.New("Trying to delete ingress which is nil")
 	}
 
+	ctx := context.Background()
+
 	name := GetLoadBalancerUniqueName(ingress)
 
 	glog.Infof("Deleting ingress %s", name)
-	return mgr.svc.DeleteLoadBalancer(mgr.conf.Loadbalancer.Compartment, name)
+	return mgr.svc.DeleteLoadBalancer(ctx, name)
 }

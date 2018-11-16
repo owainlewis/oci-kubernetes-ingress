@@ -66,23 +66,30 @@ func (spec Specification) LoadBalancerIsPrivate() bool {
 }
 
 // GetListeners returns a list of Listeners to create for this specification.
-func (spec Specification) GetListeners() []loadbalancer.Listener {
-	return []loadbalancer.Listener{}
+func (spec Specification) GetListeners() map[string]loadbalancer.ListenerDetails {
+	return map[string]loadbalancer.ListenerDetails{}
 }
 
 // GetBackendSets returns a list of the Backends we need to create for this specification.
-func (spec Specification) GetBackendSets() []loadbalancer.Backend {
-	return []loadbalancer.Backend{}
+func (spec Specification) GetBackendSets() map[string]loadbalancer.BackendSetDetails {
+	return map[string]loadbalancer.BackendSetDetails{}
 }
 
 // GetPathRouteSets returns a list of the PathRouteSets we need to create for this specification.
-func (spec Specification) GetPathRouteSets() []loadbalancer.PathRouteSet {
-	return []loadbalancer.PathRouteSet{}
+func (spec Specification) GetPathRouteSets() map[string]loadbalancer.PathRouteSetDetails {
+	return map[string]loadbalancer.PathRouteSetDetails{}
 }
 
 // GetCertificates returns a list of the Certificates we need to create for this specification.
-func (spec Specification) GetCertificates() []loadbalancer.Certificate {
-	return []loadbalancer.Certificate{}
+func (spec Specification) GetCertificates() map[string]loadbalancer.CertificateDetails {
+	return map[string]loadbalancer.CertificateDetails{}
+}
+
+// GetLoadBalancerTags returns a map of freeform tags for an ingress load balancer.
+func (spec Specification) GetLoadBalancerFreeFormTags() map[string]string {
+	return map[string]string{
+		"ingress.name": spec.Ingress.Name,
+	}
 }
 
 func getIngressAnnotationOrDefault(ingress *v1beta1.Ingress, k, defaultValue string) string {

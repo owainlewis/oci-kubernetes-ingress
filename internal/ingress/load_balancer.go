@@ -2,13 +2,16 @@ package ingress
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/oracle/oci-go-sdk/common"
+	"github.com/oracle/oci-go-sdk/common/auth"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -25,7 +28,11 @@ type LoadBalancerService struct {
 
 // NewLoadBalancerService will create a service to manage OCI Load Balancers.
 func NewLoadBalancerService(conf config.Config) (*LoadBalancerService, error) {
-	client, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(common.DefaultConfigProvider())
+	configurationProvider, err := newConfigurationProvider(conf)
+	if err != nil {
+		return nil, err
+	}
+	client, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(configurationProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +41,7 @@ func NewLoadBalancerService(conf config.Config) (*LoadBalancerService, error) {
 }
 
 // CreateLoadBalancer will create a new OCI load balancer to handle ingress traffic.
-func (svc *LoadBalancerService) CreateLoadBalancer(specification Specification) (WorkRequestID, error) {
+func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specification Specification) (WorkRequestID, error) {
 	request := loadbalancer.CreateLoadBalancerRequest{
 		CreateLoadBalancerDetails: loadbalancer.CreateLoadBalancerDetails{
 			CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
@@ -42,45 +49,70 @@ func (svc *LoadBalancerService) CreateLoadBalancer(specification Specification) 
 			ShapeName:     common.String(specification.GetLoadBalancerShape()),
 			IsPrivate:     common.Bool(specification.LoadBalancerIsPrivate()),
 			SubnetIds:     specification.GetLoadBalancerSubnets(),
-			// PathRouteSets:
-			// BackendSets:   spec.BackendSets,
-			// Listeners:     spec.Listeners,
-			// Certificates:  certs,
+			//PathRouteSets: specification.GetPathRouteSets(),
+			BackendSets: specification.GetBackendSets(),
+			//Listeners:     specification.GetListeners(),
+			//Certificates:  specification.GetCertificates(),
+			//FreeformTags:  specification.GetLoadBalancerFreeFormTags(),
 		},
 	}
 
-	ctx := context.Background()
 	response, err := svc.client.CreateLoadBalancer(ctx, request)
+	if err != nil {
+		return "", err
+	}
 
 	return *response.OpcWorkRequestId, err
 }
 
+func (svc *LoadBalancerService) CreateAndAwaitLoadBalancer(ctx context.Context, specification Specification) (*loadbalancer.LoadBalancer, error) {
+	workRequestID, err := svc.CreateLoadBalancer(ctx, specification)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = svc.AwaitWorkRequest(ctx, workRequestID)
+	if err != nil {
+		return nil, err
+	}
+
+	glog.Infof("Load balancer created")
+
+	return nil, nil
+}
+
 // DeleteLoadBalancer will delete a load balancer from OCI.
-func (svc *LoadBalancerService) DeleteLoadBalancer(compartment, name string) error {
-	lb, err := svc.GetLoadBalancer(compartment, name)
+func (svc *LoadBalancerService) DeleteLoadBalancer(ctx context.Context, name string) error {
+	return errors.New("Cannot delete load balancer that does not yet exist")
+	lb, err := svc.GetLoadBalancer(ctx, name)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	_, err = svc.client.DeleteLoadBalancer(ctx, loadbalancer.DeleteLoadBalancerRequest{
 		LoadBalancerId: lb.Id,
 	})
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	//svc.AwaitWorkRequest(ctx, *response.OpcWorkRequestId)
+
+	return nil
 }
 
 // GetLoadBalancer will find an OCI load balancer based on a specification.
 // TODO we are relying on display name which is not unique in OCI
-func (svc *LoadBalancerService) GetLoadBalancer(compartment string, name string) (*loadbalancer.LoadBalancer, error) {
+func (svc *LoadBalancerService) GetLoadBalancer(ctx context.Context, name string) (*loadbalancer.LoadBalancer, error) {
 	var page *string
 	for {
 		request := loadbalancer.ListLoadBalancersRequest{
-			CompartmentId: common.String(compartment),
+			CompartmentId: common.String(svc.config.Loadbalancer.Compartment),
 			DisplayName:   common.String(name),
 			Page:          page,
 		}
 
-		ctx := context.Background()
 		response, err := svc.client.ListLoadBalancers(ctx, request)
 		if err != nil {
 			return nil, err
@@ -122,6 +154,9 @@ func (svc *LoadBalancerService) AwaitWorkRequest(ctx context.Context, id string)
 		if err != nil {
 			return true, err
 		}
+
+		glog.V(4).Infof("Work request lifecycle state: %v", workReq.LifecycleState)
+
 		switch workReq.LifecycleState {
 		case loadbalancer.WorkRequestLifecycleStateSucceeded:
 			wr = workReq
@@ -133,4 +168,24 @@ func (svc *LoadBalancerService) AwaitWorkRequest(ctx context.Context, id string)
 	}, ctx.Done())
 
 	return wr, err
+}
+
+func newConfigurationProvider(cfg config.Config) (common.ConfigurationProvider, error) {
+	var conf common.ConfigurationProvider
+	if cfg.UseInstancePrincipals {
+		cp, err := auth.InstancePrincipalConfigurationProvider()
+		if err != nil {
+			return nil, err
+		}
+		return cp, nil
+	}
+	conf = common.NewRawConfigurationProvider(
+		cfg.Auth.TenancyID,
+		cfg.Auth.UserID,
+		cfg.Auth.Region,
+		cfg.Auth.Fingerprint,
+		cfg.Auth.PrivateKey,
+		common.String(cfg.Auth.Passphrase))
+
+	return conf, nil
 }
