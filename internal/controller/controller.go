@@ -9,7 +9,8 @@ import (
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/context"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/store"
+
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/manager"
 
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
@@ -20,9 +21,8 @@ type OCIController struct {
 	configuration config.Config
 	context       context.ControllerContext
 	workQueue     OCIWorkQueue
+	manager       manager.IngressManager
 	stopCh        chan struct{}
-
-	nodeStore store.NodeStore
 }
 
 // NewOCIController will create a new OCI Ingress Controller
@@ -30,9 +30,8 @@ func NewOCIController(conf config.Config, context context.ControllerContext, sto
 	ctrl := &OCIController{
 		configuration: conf,
 		context:       context,
+		manager:       manager.NewOCIIngressManager(),
 		stopCh:        stopCh,
-
-		nodeStore: store.NewNodeStoreFromCache(context.CacheGroup.NodeCache),
 	}
 
 	ctrl.workQueue = NewOCIWorkQueue(ctrl.sync)
@@ -101,6 +100,10 @@ func (c *OCIController) sync(key string) error {
 	// We convert the Ingress object to a specification that descibes the desired state
 	// of the OCI load balancer.
 	// ingressSpecification := manager.NewSpecification(c.configuration, ingress, nil)
+
+	// We then dispatch this specification to a manager to ensure state
+
+	c.manager.EnsureIngress()
 
 	return nil
 }

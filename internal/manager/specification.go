@@ -88,9 +88,9 @@ func getIngressAnnotationOrDefault(ingress *extensions.Ingress, k, defaultValue 
 // getNodeInternalIPAddress will extract the OCI internal node IP address
 // for a given node. Since it is impossible to launch an instance without
 // an internal (private) IP, we can be sure that one exists.
-func getNodeInternalIPAddress(node *core_v1.Node) string {
+func getNodeInternalIPAddress(node *corev1.Node) string {
 	for _, addr := range node.Status.Addresses {
-		if addr.Type == core_v1.NodeInternalIP {
+		if addr.Type == corev1.NodeInternalIP {
 			return addr.Address
 		}
 	}

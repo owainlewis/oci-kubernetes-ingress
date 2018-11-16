@@ -14,7 +14,7 @@ type OCIIngressManager struct {
 }
 
 func NewOCIIngressManager() *OCIIngressManager {
-	return nil
+	return &OCIIngressManager{}
 }
 
 func (m *OCIIngressManager) EnsureIngress() {
