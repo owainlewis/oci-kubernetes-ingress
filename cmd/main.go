@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"time"
 
 	"github.com/golang/glog"
@@ -24,39 +23,36 @@ var (
 
 	configfile = flag.String("config", "cloud-provider.yaml",
 		"Path to the OCI ingress controller configuration file.")
+
+	interval = flag.Duration("interval", 30*time.Minute,
+		"The reconcile interval for Kubernetes informers")
 )
 
 func main() {
-	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	// Load configuration
-	configuration, err := config.FromFile(*configfile)
+	// Load OCI configuration file
+	configuration, err := loadAndValidateConfiguration(*configfile)
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %s", err)
-	}
-
-	err = configuration.Validate()
-	if err != nil {
-		glog.Fatalf("Invalid configuration: %s", err)
+		glog.Fatalf("Invalid or absent configuration: %v", err)
 	}
 
 	// Load Kubernetes client
-	kubeClient, err := buildClient(*kubeconfig)
+	kubeClient, err := buildK8sClient(*kubeconfig)
 	if err != nil {
-		glog.Fatalf("Failed to create kubernetes client: %s", err)
+		glog.Fatalf("Failed to create kubernetes client: %v", err)
 	}
 
-	context := context.NewControllerContext(kubeClient, *namespace, 30*time.Second)
+	context := context.NewControllerContext(kubeClient, *namespace, *interval)
 	stopCh := make(chan struct{})
 	ctrl := controller.NewOCIController(*configuration, context, stopCh)
 
 	ctrl.Run()
 }
 
-// buildClient will construct a K8s clientset based on either local
-// or in-cluster configuration depending on context
-func buildClient(kubeconfig string) (kubernetes.Interface, error) {
+// buildK8sClient will construct a K8s client based on either local
+// or in-cluster configuration.
+func buildK8sClient(kubeconfig string) (kubernetes.Interface, error) {
 	var config *rest.Config
 	var err error
 	if kubeconfig != "" {
@@ -71,4 +67,20 @@ func buildClient(kubeconfig string) (kubernetes.Interface, error) {
 	}
 
 	return kubernetes.NewForConfig(config)
+}
+
+// loadAndValidateConfiguration will read and validate a configuration file
+// from disk.
+func loadAndValidateConfiguration(filepath string) (*config.Config, error) {
+	configuration, err := config.FromFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = configuration.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	return configuration, nil
 }

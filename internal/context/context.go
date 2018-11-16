@@ -4,31 +4,32 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/golang/glog"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/listers/core/v1"
+	v1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
 )
 
 // InformerGroup is a structure that holds multiple informers.
 type InformerGroup struct {
 	IngressInformer cache.SharedIndexInformer
-	ServiceInformer cache.SharedIndexInformer
-	SecretInformer  cache.SharedIndexInformer
+	NodeInformer    cache.SharedIndexInformer
 }
 
 // Run will run and await sync for all the informers in the informer group.
 func (i *InformerGroup) Run(stopCh chan struct{}) error {
-	go i.ServiceInformer.Run(stopCh)
-	go i.SecretInformer.Run(stopCh)
 	go i.IngressInformer.Run(stopCh)
+	go i.NodeInformer.Run(stopCh)
 
 	glog.V(4).Info("Waiting for all caches to sync")
 
-	if !cache.WaitForCacheSync(stopCh, i.IngressInformer.HasSynced, i.ServiceInformer.HasSynced, i.SecretInformer.HasSynced) {
+	if !cache.WaitForCacheSync(stopCh,
+		i.IngressInformer.HasSynced,
+		i.NodeInformer.HasSynced) {
 		return fmt.Errorf("failed waiting for caches to sync")
 	}
 
@@ -37,16 +38,24 @@ func (i *InformerGroup) Run(stopCh chan struct{}) error {
 	return nil
 }
 
+// ListerGroup is a structure that holds multiple listers.
+type ListerGroup struct {
+	IngressLister v1beta1.IngressLister
+	NodeLister    corev1.NodeLister
+}
+
 // CacheGroup is a structure that holds multiple caches.
 type CacheGroup struct {
 	IngressCache cache.Store
 	ServiceCache cache.Store
 	SecretCache  cache.Store
+	NodeCache    cache.Store
 }
 
 // ControllerContext provides a controller with access to multiple informers and caches.
 type ControllerContext struct {
 	InformerGroup InformerGroup
+	ListerGroup   ListerGroup
 	CacheGroup    CacheGroup
 	StopChannel   chan struct{}
 }
@@ -54,20 +63,20 @@ type ControllerContext struct {
 // NewControllerContext will construct a new ControllerContext struct.
 func NewControllerContext(kubeClient kubernetes.Interface, namespace string, resyncPeriod time.Duration) ControllerContext {
 	informerFactory := informers.NewFilteredSharedInformerFactory(kubeClient, resyncPeriod, namespace, func(*metav1.ListOptions) {})
-
 	ctx := ControllerContext{
 		InformerGroup: InformerGroup{
 			IngressInformer: informerFactory.Extensions().V1beta1().Ingresses().Informer(),
-			ServiceInformer: informerFactory.Core().V1().Services().Informer(),
-			SecretInformer:  informerFactory.Core().V1().Secrets().Informer(),
+			NodeInformer:    informerFactory.Core().V1().Nodes().Informer(),
 		},
-		CacheGroup:  CacheGroup{},
+		ListerGroup: ListerGroup{
+			IngressLister: informerFactory.Extensions().V1beta1().Ingresses().Lister(),
+			NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
+		},
 		StopChannel: make(chan struct{}),
 	}
 
 	ctx.CacheGroup.IngressCache = ctx.InformerGroup.IngressInformer.GetStore()
-	ctx.CacheGroup.ServiceCache = ctx.InformerGroup.ServiceInformer.GetStore()
-	ctx.CacheGroup.SecretCache = ctx.InformerGroup.SecretInformer.GetStore()
+	ctx.CacheGroup.NodeCache = ctx.InformerGroup.NodeInformer.GetStore()
 
 	return ctx
 }
@@ -85,7 +94,5 @@ func (c *ControllerContext) Stop() {
 
 // HasSynced returns true if all informers have synced.
 func (c *ControllerContext) HasSynced() bool {
-	return c.InformerGroup.IngressInformer.HasSynced() &&
-		c.InformerGroup.SecretInformer.HasSynced() &&
-		c.InformerGroup.ServiceInformer.HasSynced()
+	return c.InformerGroup.IngressInformer.HasSynced() && c.InformerGroup.NodeInformer.HasSynced()
 }
