@@ -82,9 +82,13 @@ func (c *OCIController) sync(key string) error {
 	}
 
 	glog.V(4).Infof("\n\nSync called for item: %s\n\n", key)
+
 	obj, exists, _ := c.context.CacheGroup.IngressCache.GetByKey(key)
 	if !exists {
 		glog.V(2).Infof("Ingress %v no longer exists. Garbage collecting OCI resources associated with it", key)
+
+		c.manager.EnsureIngressDeleted()
+
 		return nil
 	}
 
@@ -103,7 +107,12 @@ func (c *OCIController) sync(key string) error {
 
 	// We then dispatch this specification to a manager to ensure state
 
-	c.manager.EnsureIngress()
+	nodes, err := c.context.GetAllNodes()
+	if err != nil {
+		return err
+	}
+
+	c.manager.EnsureIngress(ingress, nodes)
 
 	return nil
 }
