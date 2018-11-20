@@ -1,4 +1,4 @@
-package manager
+package ingress
 
 import (
 	"github.com/oracle/oci-go-sdk/loadbalancer"

@@ -1,5 +1,9 @@
 package manager
 
+import (
+	"github.com/golang/glog"
+)
+
 // IngressManager is an interface for managing state between K8s Ingress and OCI LBs.
 type IngressManager interface {
 	// EnsureIngress will ensure that an OCI load balancer exists and is
@@ -18,9 +22,10 @@ func NewOCIIngressManager() *OCIIngressManager {
 }
 
 func (m *OCIIngressManager) EnsureIngress() {
+	glog.V(4).Info("Ensuring ingress state")
 
 }
 
 func (m *OCIIngressManager) EnsureIngressDeleted() {
-
+	glog.V(4).Info("Ensuring ingress deleted")
 }
