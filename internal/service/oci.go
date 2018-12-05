@@ -11,7 +11,7 @@ import (
 	"github.com/oracle/oci-go-sdk/common/auth"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/manager"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -42,11 +42,11 @@ func NewLoadBalancerService(conf config.Config) (*LoadBalancerService, error) {
 }
 
 // CreateLoadBalancer will create a new OCI load balancer to handle ingress traffic.
-func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specification manager.Specification) (WorkRequestID, error) {
+func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specification ingress.Specification) (WorkRequestID, error) {
 	request := loadbalancer.CreateLoadBalancerRequest{
 		CreateLoadBalancerDetails: loadbalancer.CreateLoadBalancerDetails{
 			CompartmentId: common.String(specification.GetLoadBalancerCompartment()),
-			DisplayName:   common.String(GetLoadBalancerUniqueName(specification.Ingress)),
+			DisplayName:   common.String(ingress.GetLoadBalancerUniqueName(specification.Ingress)),
 			ShapeName:     common.String(specification.GetLoadBalancerShape()),
 			IsPrivate:     common.Bool(specification.LoadBalancerIsPrivate()),
 			SubnetIds:     specification.GetLoadBalancerSubnets(),
@@ -66,7 +66,10 @@ func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specific
 	return *response.OpcWorkRequestId, err
 }
 
-func (svc *LoadBalancerService) CreateAndAwaitLoadBalancer(ctx context.Context, specification Specification) (*loadbalancer.LoadBalancer, error) {
+func (svc *LoadBalancerService) CreateAndAwaitLoadBalancer(
+	ctx context.Context,
+	specification ingress.Specification) (*loadbalancer.LoadBalancer, error) {
+
 	workRequestID, err := svc.CreateLoadBalancer(ctx, specification)
 	if err != nil {
 		return nil, err

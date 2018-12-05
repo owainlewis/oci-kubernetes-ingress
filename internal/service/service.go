@@ -1,4 +1,4 @@
 package service
 
-type LoadBalancerService interface {
+type LoadBalancerInterface interface {
 }

@@ -8,8 +8,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/context"
-
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/manager"
 
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -19,14 +17,14 @@ import (
 // OCIController is the definition for an OCI Ingress Controller
 type OCIController struct {
 	configuration config.Config
-	context       context.ControllerContext
+	context       ControllerContext
 	workQueue     OCIWorkQueue
 	manager       manager.IngressManager
 	stopCh        chan struct{}
 }
 
 // NewOCIController will create a new OCI Ingress Controller
-func NewOCIController(conf config.Config, context context.ControllerContext, stopCh chan struct{}) *OCIController {
+func NewOCIController(conf config.Config, context ControllerContext, stopCh chan struct{}) *OCIController {
 	ctrl := &OCIController{
 		configuration: conf,
 		context:       context,
@@ -59,6 +57,16 @@ func NewOCIController(conf config.Config, context context.ControllerContext, sto
 			ingress := obj.(*extensions.Ingress)
 			glog.V(4).Infof("Ingress %s deleted. Enqueing work item", ingress.Name)
 			ctrl.workQueue.Enqueue(ingress)
+		},
+	})
+
+	// Service event handlers
+	ctrl.context.InformerGroup.ServiceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+		},
+		UpdateFunc: func(old, new interface{}) {
+		},
+		DeleteFunc: func(obj interface{}) {
 		},
 	})
 

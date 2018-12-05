@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/context"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
 
 	"k8s.io/client-go/kubernetes"
@@ -43,7 +42,7 @@ func main() {
 		glog.Fatalf("Failed to create kubernetes client: %v", err)
 	}
 
-	context := context.NewControllerContext(kubeClient, *namespace, *interval)
+	context := controller.NewControllerContext(kubeClient, *namespace, *interval)
 	stopCh := make(chan struct{})
 	ctrl := controller.NewOCIController(*configuration, context, stopCh)
 
