@@ -50,11 +50,11 @@ func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specific
 			ShapeName:     common.String(specification.GetLoadBalancerShape()),
 			IsPrivate:     common.Bool(specification.LoadBalancerIsPrivate()),
 			SubnetIds:     specification.GetLoadBalancerSubnets(),
-			//PathRouteSets: specification.GetPathRouteSets(),
-			BackendSets: specification.GetBackendSets(),
-			//Listeners:     specification.GetListeners(),
-			//Certificates:  specification.GetCertificates(),
-			//FreeformTags:  specification.GetLoadBalancerFreeFormTags(),
+			PathRouteSets: specification.GetPathRouteSets(),
+			BackendSets:   specification.GetBackendSets(),
+			Listeners:     specification.GetListeners(),
+			Certificates:  specification.GetCertificates(),
+			FreeformTags:  specification.GetLoadBalancerFreeFormTags(),
 		},
 	}
 

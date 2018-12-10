@@ -30,6 +30,7 @@ func NewSpecification(configuration config.Config, ingress *extensions.Ingress, 
 
 // GetLoadBalancerShape will return the load balancer shape required.
 // The shape can be controlled by setting ingress object annotations.
+// Available shapes include 100 Mbps, 400 Mbps, and 8000 Mbps.
 func (spec Specification) GetLoadBalancerShape() string {
 	return getIngressAnnotationOrDefault(spec.Ingress, annotations.LoadBalancerShape, defaultLoadBalancerShape)
 }
@@ -74,7 +75,7 @@ func (spec Specification) GetCertificates() map[string]loadbalancer.CertificateD
 // GetLoadBalancerFreeFormTags returns a set of freeform tags for an ingress load balancer.
 func (spec Specification) GetLoadBalancerFreeFormTags() map[string]string {
 	return map[string]string{
-		"ingress.name": spec.Ingress.Name,
+		"oracle.oci.ingress.name": spec.Ingress.Name,
 	}
 }
 
