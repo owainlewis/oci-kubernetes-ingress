@@ -1,7 +1,7 @@
 package ingress
 
-func (spec Specification) withIngressAnnotation(k, v string) Specification {
-	annotations := spec.Ingress.Annotations
+func (spec Specification) withIngressAnnotations(k, v string) Specification {
+	annotations := map[string]string{}
 	annotations[k] = v
 
 	spec.Ingress.Annotations = annotations

@@ -45,7 +45,7 @@ func TestGetLoadBalancerShapeCustomAnnotations(t *testing.T) {
 	nodes := []*v1.Node{}
 
 	specification := NewSpecification(configuration, ingress, nodes).
-		withIngressAnnotation(annotations.LoadBalancerShape, "400mbps")
+		withIngressAnnotations(annotations.LoadBalancerShape, "400mbps")
 
 	shape := specification.GetLoadBalancerShape()
 	if shape != "400mbps" {
