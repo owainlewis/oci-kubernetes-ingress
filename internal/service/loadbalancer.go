@@ -58,12 +58,12 @@ func (svc *LoadBalancerService) CreateLoadBalancer(ctx context.Context, specific
 		},
 	}
 
-	response, err := svc.client.CreateLoadBalancer(ctx, request)
+	resp, err := svc.client.CreateLoadBalancer(ctx, request)
 	if err != nil {
 		return "", err
 	}
 
-	return *response.OpcWorkRequestId, err
+	return *resp.OpcWorkRequestId, err
 }
 
 func (svc *LoadBalancerService) CreateAndAwaitLoadBalancer(
