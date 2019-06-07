@@ -1,85 +1,45 @@
 package main
 
 import (
-	"flag"
-	"time"
+	"fmt"
+	"os"
 
-	"github.com/golang/glog"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/config"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-)
-
-var (
-	kubeconfig = flag.String("kubeconfig", "",
-		"Path to a kubeconfig file")
-
-	namespace = flag.String("namespace", "default",
-		"Namespace to run in")
-
-	configfile = flag.String("config", "cloud-provider.yaml",
-		"Path to the OCI ingress controller configuration file.")
-
-	interval = flag.Duration("interval", 30*time.Minute,
-		"The reconcile interval for Kubernetes informers")
+	rec "github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
 )
 
 func main() {
-	flag.Parse()
 
-	// Load OCI configuration file
-	configuration, err := loadAndValidateConfiguration(*configfile)
+	fmt.Println("Starting...")
+
+	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{})
 	if err != nil {
-		glog.Fatalf("Invalid or absent configuration: %v", err)
+		os.Exit(1)
 	}
 
-	// Load Kubernetes client
-	kubeClient, err := buildK8sClient(*kubeconfig)
+	// Setup a new controller to reconcile ReplicaSets
+	c, err := controller.New("ingress-controller", mgr, controller.Options{
+		Reconciler: rec.NewOracleIngressReconciler(mgr.GetClient()),
+	})
 	if err != nil {
-		glog.Fatalf("Failed to create kubernetes client: %v", err)
+		fmt.Println("Failed to create controller")
+		os.Exit(1)
 	}
 
-	context := controller.NewControllerContext(kubeClient, *namespace, *interval)
-	stopCh := make(chan struct{})
-	ctrl := controller.NewOCIController(*configuration, context, stopCh)
-
-	ctrl.Run()
-}
-
-// buildK8sClient will construct a K8s client based on either local
-// or in-cluster configuration.
-func buildK8sClient(kubeconfig string) (kubernetes.Interface, error) {
-	var config *rest.Config
-	var err error
-	if kubeconfig != "" {
-		glog.V(4).Infof("Using local kubeconfig at path %s", kubeconfig)
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-	} else {
-		config, err = rest.InClusterConfig()
+	// Watch ReplicaSets and enqueue ReplicaSet object key
+	if err := c.Watch(&source.Kind{Type: &v1beta1.Ingress{}}, &handler.EnqueueRequestForObject{}); err != nil {
+		fmt.Println("Failed to watch")
+		os.Exit(1)
 	}
 
-	if err != nil {
-		return nil, err
+	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+		os.Exit(1)
 	}
-
-	return kubernetes.NewForConfig(config)
-}
-
-// loadAndValidateConfiguration will read and validate a configuration file
-// from disk.
-func loadAndValidateConfiguration(filepath string) (*config.Config, error) {
-	configuration, err := config.FromFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = configuration.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	return configuration, nil
 }
