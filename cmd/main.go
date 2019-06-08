@@ -1,45 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller"
 
-	rec "github.com/owainlewis/oci-kubernetes-ingress/internal/controller"
+	"go.uber.org/zap"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
+
+var controllerName = "oracle-cloud-infrastructure-ingress-controller"
 
 func main() {
 
-	fmt.Println("Starting...")
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	logger.Info("Starting ingress controller")
 
-	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{})
-	if err != nil {
-		os.Exit(1)
-	}
-
-	// Setup a new controller to reconcile ReplicaSets
-	c, err := controller.New("ingress-controller", mgr, controller.Options{
-		Reconciler: rec.NewOracleIngressReconciler(mgr.GetClient()),
+	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{
+		//		Namespace: "default",
 	})
 	if err != nil {
-		fmt.Println("Failed to create controller")
 		os.Exit(1)
 	}
 
-	// Watch ReplicaSets and enqueue ReplicaSet object key
-	if err := c.Watch(&source.Kind{Type: &v1beta1.Ingress{}}, &handler.EnqueueRequestForObject{}); err != nil {
-		fmt.Println("Failed to watch")
-		os.Exit(1)
+	if err := controller.Initialize(mgr); err != nil {
+		logger.Fatal("Failed to initialize controller")
 	}
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
-		os.Exit(1)
+		logger.Fatal("Failed to start manager")
 	}
 }
