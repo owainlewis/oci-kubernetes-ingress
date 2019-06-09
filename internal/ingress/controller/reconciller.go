@@ -2,7 +2,8 @@ package controller
 
 import (
 	"context"
-	"fmt"
+
+	"go.uber.org/zap"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -12,17 +13,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/loadbalancer"
 )
 
 // Reconciler reconciles a single ingress
 type Reconciler struct {
 	client client.Client
 	cache  cache.Cache
+	logger *zap.Logger
+	lbc    loadbalancer.Controller
 }
 
 // Reconcile will reconcile the aws resources with k8s state of ingress.
 func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	fmt.Println("Reconcile loop called")
+	r.logger.Info("Reconcile loop called")
 	ctx := context.Background()
 	ingress := &extensions.Ingress{}
 
@@ -31,7 +36,10 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 			return reconcile.Result{}, err
 		}
 
+		r.logger.Sugar().Infof("Could not find ingress. Deleting", ingress)
+
 		if err := r.deleteIngress(ctx, request.NamespacedName); err != nil {
+			r.logger.Info("Failed to delete ingress")
 			return reconcile.Result{}, err
 		}
 

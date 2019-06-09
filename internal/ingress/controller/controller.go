@@ -3,19 +3,23 @@ package controller
 import (
 	"fmt"
 
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/handlers"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/handlers"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
 )
 
 // Initialize ...
-func Initialize(mgr manager.Manager) error {
-	reconciler, err := newReconciler(mgr)
+func Initialize(mgr manager.Manager, client client.OCI, logger *zap.Logger) error {
+	reconciler, err := newReconciler(mgr, logger)
 	if err != nil {
 		return err
 	}
@@ -32,10 +36,11 @@ func Initialize(mgr manager.Manager) error {
 	return nil
 }
 
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+func newReconciler(mgr manager.Manager, logger *zap.Logger) (reconcile.Reconciler, error) {
 	return &Reconciler{
 		client: mgr.GetClient(),
 		cache:  mgr.GetCache(),
+		logger: logger,
 	}, nil
 }
 

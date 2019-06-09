@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/oracle/oci-go-sdk/common"
+	"github.com/oracle/oci-go-sdk/common/auth"
 	"gopkg.in/yaml.v2"
 )
 
@@ -71,4 +73,37 @@ func FromFile(filename string) (*Config, error) {
 	}
 
 	return Parse(b)
+}
+
+// NewConfigurationProvider takes a cloud provider config file and returns an OCI ConfigurationProvider
+// to be consumed by the OCI SDK.
+func NewConfigurationProvider(cfg *Config) (common.ConfigurationProvider, error) {
+	var conf common.ConfigurationProvider
+	if cfg != nil {
+		err := cfg.Validate()
+		if err != nil {
+			return nil, err
+		}
+
+		if cfg.UseInstancePrincipals {
+			cp, err := auth.InstancePrincipalConfigurationProvider()
+			if err != nil {
+				return nil, err
+			}
+			return cp, nil
+		}
+
+		conf = common.NewRawConfigurationProvider(
+			cfg.Auth.TenancyID,
+			cfg.Auth.UserID,
+			cfg.Auth.Region,
+			cfg.Auth.Fingerprint,
+			cfg.Auth.PrivateKey,
+			common.String(cfg.Auth.Passphrase))
+
+	} else {
+		conf = common.DefaultConfigProvider()
+	}
+
+	return conf, nil
 }

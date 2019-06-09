@@ -6,6 +6,7 @@ import (
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller"
 	apiv1 "k8s.io/api/core/v1"
 
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
 	ociconfig "github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -16,23 +17,35 @@ import (
 var controllerName = "oracle-cloud-infrastructure-ingress-controller"
 
 func main() {
+	// Setup logging
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	logger.Info("Starting ingress controller")
 
+	// Read command flags
 	settings, err := loadSettings()
 	if err != nil {
-		logger.Fatal("Failed to load settings")
+		logger.Sugar().Fatalf("Failed to load settings: %s", err)
 	}
 
-	logger.Sugar().Infof("Using config file at %s", settings.Config)
-
-	ociConfig, err := ociconfig.FromFile(settings.Config)
+	// Set OCI client
+	cfg, err := ociconfig.FromFile(settings.Config)
 	if err != nil {
 		logger.Sugar().Infof("Failed to load configuration: %s", err)
 	}
 
-	logger.Sugar().Infof("Configuration: %+v", ociConfig)
+	logger.Sugar().Infof("Configuration: %+v", cfg)
+
+	// Build configuration provider
+	provider, err := ociconfig.NewConfigurationProvider(cfg)
+	if err != nil {
+	}
+
+	// Build generic client from configuration provider
+	ociClient, err := client.NewOCI(provider)
+	if err != nil {
+		logger.Fatal("Failed to build OCI client")
+	}
 
 	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{
 		Namespace: settings.Namespace,
@@ -41,7 +54,7 @@ func main() {
 		logger.Fatal("Failed to start manager")
 	}
 
-	if err := controller.Initialize(mgr); err != nil {
+	if err := controller.Initialize(mgr, ociClient, logger); err != nil {
 		logger.Fatal("Failed to initialize controller")
 	}
 
