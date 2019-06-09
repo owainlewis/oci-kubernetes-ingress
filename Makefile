@@ -14,8 +14,7 @@ test:
 run:
 	go run cmd/main.go \
 		-kubeconfig=$$KUBECONFIG \
-		-logtostderr=true \
-		-v=4
+		-config=./config.yaml
 
 _deps:
 	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
