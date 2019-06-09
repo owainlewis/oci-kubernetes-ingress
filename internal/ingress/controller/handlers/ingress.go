@@ -12,7 +12,6 @@ import (
 var _ handler.EventHandler = (*EnqueueRequestsForIngressEvent)(nil)
 
 type EnqueueRequestsForIngressEvent struct {
-	IngressClass string
 }
 
 func (h *EnqueueRequestsForIngressEvent) Create(e event.CreateEvent, queue workqueue.RateLimitingInterface) {

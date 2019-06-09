@@ -1,1 +1,16 @@
 ---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: oci-ingress-example
+  annotations:
+    kubernetes.io/ingress.class: "oci"
+spec:
+ rules:
+ - host: example.com
+   http:
+     paths:
+     - path: /
+       backend:
+         serviceName: web
+         servicePort: 8080
