@@ -15,11 +15,15 @@ import (
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/handlers"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/loadbalancer"
 )
 
 // Initialize ...
-func Initialize(mgr manager.Manager, client client.OCI, logger *zap.Logger) error {
-	reconciler, err := newReconciler(mgr, logger)
+func Initialize(mgr manager.Manager, configuration config.Config, client client.OCI, logger zap.Logger) error {
+	loadbalancerController := loadbalancer.NewOCILoadBalancerController(client, configuration, logger)
+
+	reconciler, err := newReconciler(mgr, configuration, loadbalancerController, logger)
 	if err != nil {
 		return err
 	}
@@ -36,11 +40,13 @@ func Initialize(mgr manager.Manager, client client.OCI, logger *zap.Logger) erro
 	return nil
 }
 
-func newReconciler(mgr manager.Manager, logger *zap.Logger) (reconcile.Reconciler, error) {
+func newReconciler(mgr manager.Manager, configuration config.Config, lbc loadbalancer.Controller, logger zap.Logger) (reconcile.Reconciler, error) {
 	return &Reconciler{
-		client: mgr.GetClient(),
-		cache:  mgr.GetCache(),
-		logger: logger,
+		client:        mgr.GetClient(),
+		cache:         mgr.GetCache(),
+		configuration: configuration,
+		controller:    lbc,
+		logger:        logger,
 	}, nil
 }
 

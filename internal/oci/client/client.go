@@ -7,7 +7,7 @@ import (
 )
 
 type OCI struct {
-	loadbalancer loadbalancer.LoadBalancerClient
+	Loadbalancer loadbalancer.LoadBalancerClient
 }
 
 func NewOCI(provider common.ConfigurationProvider) (OCI, error) {

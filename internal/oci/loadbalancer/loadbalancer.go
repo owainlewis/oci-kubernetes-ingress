@@ -3,37 +3,54 @@ package loadbalancer
 import (
 	"context"
 
-	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
+	"go.uber.org/zap"
 
+	"github.com/oracle/oci-go-sdk/common"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
 	extensions "k8s.io/api/extensions/v1beta1"
 )
 
 // Controller maps Kubernetes Ingress objects to OCI load balancers.
 type Controller interface {
-	Reconcile(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
-	Delete(ctx context.Context, ingressKey types.NamespacedName) error
+	Create(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
+	// Update(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
+	// Delete(ctx context.Context, ingressKey types.NamespacedName) error
 }
 
 type OCILoadBalancerController struct {
-	client client.OCI
-	logger zap.Logger
+	client        client.OCI
+	configuration config.Config
+	logger        zap.Logger
 }
 
-func NewOCILoadBalancerController(logger zap.Logger, client client.OCI) *OCILoadBalancerController {
+func NewOCILoadBalancerController(client client.OCI, configuration config.Config, logger zap.Logger) *OCILoadBalancerController {
 	return &OCILoadBalancerController{
-		logger: logger,
-		client: client,
+		client:        client,
+		configuration: configuration,
+		logger:        logger,
 	}
 }
 
-func (lb *OCILoadBalancerController) Reconcile(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
-	return nil, nil
-}
+func (lb *OCILoadBalancerController) Create(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
+	details := loadbalancer.CreateLoadBalancerDetails{
+		CompartmentId: &lb.configuration.Loadbalancer.Compartment,
+		DisplayName:   common.String("nginx"),
+		ShapeName:     common.String("100Mbps"),
+		IsPrivate:     common.Bool(false),
+		SubnetIds:     lb.configuration.Loadbalancer.Subnets,
+	}
 
-func (lb *OCILoadBalancerController) Delete(ctx context.Context, ingressKey types.NamespacedName) error {
-	return nil
+	req := loadbalancer.CreateLoadBalancerRequest{
+		CreateLoadBalancerDetails: details,
+	}
+
+	_, err := lb.client.Loadbalancer.CreateLoadBalancer(ctx, req)
+	if err != nil {
+		lb.logger.Sugar().Errorf("Failed to provision load balancer: %s", err)
+		return nil, err
+	}
+
+	return nil, nil
 }

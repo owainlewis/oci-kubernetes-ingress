@@ -1,13 +1,11 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller"
-	apiv1 "k8s.io/api/core/v1"
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
-	ociconfig "github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
+	conf "github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/settings"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -23,21 +21,19 @@ func main() {
 	logger.Info("Starting ingress controller")
 
 	// Read command flags
-	settings, err := loadSettings()
+	settings, err := settings.Load()
 	if err != nil {
 		logger.Sugar().Fatalf("Failed to load settings: %s", err)
 	}
 
-	// Set OCI client
-	cfg, err := ociconfig.FromFile(settings.Config)
-	if err != nil {
+	// Read configuration
+	c, err := conf.FromFile(settings.Config)
+	if err != nil || c == nil {
 		logger.Sugar().Infof("Failed to load configuration: %s", err)
 	}
 
-	logger.Sugar().Infof("Configuration: %+v", cfg)
-
 	// Build configuration provider
-	provider, err := ociconfig.NewConfigurationProvider(cfg)
+	provider, err := conf.NewConfigurationProvider(c)
 	if err != nil {
 	}
 
@@ -54,44 +50,11 @@ func main() {
 		logger.Fatal("Failed to start manager")
 	}
 
-	if err := controller.Initialize(mgr, ociClient, logger); err != nil {
+	if err := controller.Initialize(mgr, *c, ociClient, *logger); err != nil {
 		logger.Fatal("Failed to initialize controller")
 	}
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logger.Fatal("Failed to start manager")
 	}
-}
-
-const (
-	defaultNamespace  = apiv1.NamespaceAll
-	defaultConfigPath = "/etc/oci/config.yaml"
-)
-
-// Settings defines common settings for the ingress controller
-type Settings struct {
-	Namespace string
-	Config    string
-}
-
-func (settings *Settings) bindAll() {
-	flag.StringVar(&settings.Namespace, "namespace", defaultNamespace,
-		`Namespace sets the controller watch namespace for updates to Kubernetes objects.
-		Defaults to all namespaces if not set.`)
-	flag.StringVar(&settings.Config, "config", defaultConfigPath,
-		`The path to an OCI config yaml file containing auth credentials and configuration.
-		Defaults to /etc/oci/config.yaml`)
-}
-
-func loadSettings() (*Settings, error) {
-	settings := &Settings{
-		Namespace: defaultNamespace,
-		Config:    defaultConfigPath,
-	}
-
-	settings.bindAll()
-
-	flag.Parse()
-
-	return settings, nil
 }
