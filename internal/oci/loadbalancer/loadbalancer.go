@@ -33,11 +33,13 @@ func NewOCILoadBalancerController(client client.OCI, configuration config.Config
 	}
 }
 
-func (lb *OCILoadBalancerController) Create(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
+func (lb *OCILoadBalancerController) Create(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
+	lb.logger.Sugar().Infof("Creating load balancer from definition: %+v", definition)
+
 	details := loadbalancer.CreateLoadBalancerDetails{
-		CompartmentId: &lb.configuration.Loadbalancer.Compartment,
-		DisplayName:   common.String("nginx"),
-		ShapeName:     common.String("100Mbps"),
+		CompartmentId: common.String(lb.configuration.Loadbalancer.Compartment),
+		DisplayName:   common.String(definition.Name),
+		ShapeName:     common.String(definition.Shape),
 		IsPrivate:     common.Bool(false),
 		SubnetIds:     lb.configuration.Loadbalancer.Subnets,
 	}

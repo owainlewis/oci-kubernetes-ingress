@@ -11,5 +11,12 @@ type OCI struct {
 }
 
 func NewOCI(provider common.ConfigurationProvider) (OCI, error) {
-	return OCI{}, nil
+	lbClient, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(provider)
+	if err != nil {
+		return OCI{}, err
+	}
+
+	return OCI{
+		Loadbalancer: lbClient,
+	}, nil
 }

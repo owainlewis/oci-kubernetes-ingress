@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultNamespace  = apiv1.NamespaceAll
-	defaultConfigPath = "/etc/oci/config.yaml"
+	defaultConfigPath = "config.yaml"
 )
 
 // Settings defines common settings for the ingress controller

@@ -31,8 +31,18 @@ func TestParseConfigInvalidConfig(t *testing.T) {
 	}
 }
 func TestParseConfigValidConfig(t *testing.T) {
-	_, err := Parse([]byte(validConfig))
+	c, err := Parse([]byte(validConfig))
 	if err != nil {
 		t.Fatalf("expected no error but got '%s'", err)
+	}
+
+	if c.Auth.Region != "uk-london-1" {
+		t.Fatalf("Unexpected config value: '%s'", err)
+	}
+	if c.UseInstancePrincipals != false {
+		t.Fatalf("Unexpected config value: '%s'", err)
+	}
+	if c.Loadbalancer.Compartment != "ocid1.compartment.oc1..aaaaaaaaob4ckouj3cjmf36ifjkff33wvln5fnnarumafqzpqq7tmbig2n5q" {
+		t.Fatalf("Unexpected config value: '%s'", err)
 	}
 }

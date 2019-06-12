@@ -37,12 +37,12 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 			return reconcile.Result{}, err
 		}
 
-		r.logger.Sugar().Infof("Could not find ingress. Deleting", ingress)
+		r.logger.Sugar().Infof("Could not find ingress. Deleting: %s", ingress)
 
 		return reconcile.Result{}, nil
 	}
 
-	r.logger.Sugar().Info("Creating a new load balancer for ingress %s", ingress.Name)
+	r.logger.Sugar().Infof("Creating a new load balancer for ingress %s", ingress.Name)
 	r.controller.Create(ctx, ingress)
 
 	return reconcile.Result{}, nil
