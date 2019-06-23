@@ -11,22 +11,27 @@ import (
 
 var _ handler.EventHandler = (*EnqueueRequestsForIngressEvent)(nil)
 
+// EnqueueRequestsForIngressEvent defined a structure for ingress events
 type EnqueueRequestsForIngressEvent struct {
 }
 
+// Create is a handler called when an integress object is created
 func (h *EnqueueRequestsForIngressEvent) Create(e event.CreateEvent, queue workqueue.RateLimitingInterface) {
 	h.enqueueIfIngressClassMatched(e.Object.(*extensions.Ingress), queue)
 }
 
+// Update is a handler called when an integress object is updated
 func (h *EnqueueRequestsForIngressEvent) Update(e event.UpdateEvent, queue workqueue.RateLimitingInterface) {
 	h.enqueueIfIngressClassMatched(e.ObjectOld.(*extensions.Ingress), queue)
 	h.enqueueIfIngressClassMatched(e.ObjectNew.(*extensions.Ingress), queue)
 }
 
+// Delete is a handler called when an integress object is deleted
 func (h *EnqueueRequestsForIngressEvent) Delete(e event.DeleteEvent, queue workqueue.RateLimitingInterface) {
 	h.enqueueIfIngressClassMatched(e.Object.(*extensions.Ingress), queue)
 }
 
+// Generic is a handler called when an integress object is modified but none of the above
 func (h *EnqueueRequestsForIngressEvent) Generic(e event.GenericEvent, queue workqueue.RateLimitingInterface) {
 	h.enqueueIfIngressClassMatched(e.Object.(*extensions.Ingress), queue)
 }

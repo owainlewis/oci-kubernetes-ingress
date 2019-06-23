@@ -44,14 +44,13 @@ func (h *EnqueueRequestsForNodeEvent) enqueueImpactedIngresses(queue workqueue.R
 	}
 
 	for _, ingress := range ingressList.Items {
-		if !annotations.HasOCIIngressAnnotation(&ingress) {
-			continue
+		if annotations.HasOCIIngressAnnotation(&ingress) {
+			queue.Add(reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: ingress.Namespace,
+					Name:      ingress.Name,
+				},
+			})
 		}
-		queue.Add(reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: ingress.Namespace,
-				Name:      ingress.Name,
-			},
-		})
 	}
 }
