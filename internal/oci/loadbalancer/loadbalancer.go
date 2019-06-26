@@ -9,12 +9,11 @@ import (
 
 	"github.com/oracle/oci-go-sdk/common"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
-	extensions "k8s.io/api/extensions/v1beta1"
 )
 
 // Controller maps Kubernetes Ingress objects to OCI load balancers.
 type Controller interface {
-	Create(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
+	Create(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error)
 	// Update(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
 	// Delete(ctx context.Context, ingressKey types.NamespacedName) error
 }

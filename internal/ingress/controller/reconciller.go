@@ -43,7 +43,9 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	}
 
 	r.logger.Sugar().Infof("Creating a new load balancer for ingress %s", ingress.Name)
-	r.controller.Create(ctx, ingress)
+
+	definition := loadbalancer.NewLoadBalancerDefinition(ingress)
+	r.controller.Create(ctx, definition)
 
 	return reconcile.Result{}, nil
 

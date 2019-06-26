@@ -154,6 +154,18 @@
   version = "1.0.1"
 
 [[projects]]
+  digest = "1:3aeb11d01ca53c5e5968da18306ae0b5d18dbb11441dbe919fdd688320016660"
+  name = "github.com/oracle/oci-go-sdk"
+  packages = [
+    "common",
+    "common/auth",
+    "loadbalancer",
+  ]
+  pruneopts = ""
+  revision = "d1656e11154d63002554e72b00158d8e4bae5dd3"
+  version = "v5.11.0"
+
+[[projects]]
   digest = "1:a5484d4fa43127138ae6e7b2299a6a52ae006c7f803d98d717f60abf3e97192e"
   name = "github.com/pborman/uuid"
   packages = ["."]
@@ -629,11 +641,15 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/oracle/oci-go-sdk/common",
+    "github.com/oracle/oci-go-sdk/common/auth",
+    "github.com/oracle/oci-go-sdk/loadbalancer",
     "go.uber.org/zap",
     "gopkg.in/yaml.v2",
     "k8s.io/api/core/v1",
     "k8s.io/api/extensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/client-go/util/workqueue",
     "sigs.k8s.io/controller-runtime/pkg/cache",

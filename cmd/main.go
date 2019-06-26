@@ -32,15 +32,18 @@ func main() {
 		logger.Sugar().Infof("Failed to load configuration: %s", err)
 	}
 
+	logger.Sugar().Infof("%+v", c)
+
 	// Build configuration provider
 	provider, err := conf.NewConfigurationProvider(c)
 	if err != nil {
+		logger.Fatal("Failed to load configuration provider")
 	}
 
 	// Build generic client from configuration provider
 	ociClient, err := client.NewOCI(provider)
 	if err != nil {
-		logger.Fatal("Failed to build OCI client")
+		logger.Sugar().Fatalf("Failed to build OCI client: %s", err)
 	}
 
 	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{
