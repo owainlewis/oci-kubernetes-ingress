@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/annotations"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/annotations"
 )
 
 // When nodes change (added or removed from cluster) update the state of the load balancers for all ingress objects

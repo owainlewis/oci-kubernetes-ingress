@@ -26,10 +26,7 @@ func getLoadBalancerShape(ingress *extensions.Ingress) string {
 }
 
 func getLoadBalancerName(ingress *extensions.Ingress) string {
-	if ingress.UID == "" {
-		return ingress.ObjectMeta.Name
-	}
-	name := fmt.Sprintf("%s", ingress.UID)
+	name := fmt.Sprintf("%s-%s", ingress.Namespace, ingress.Name)
 	if len(name) > 1024 {
 		// 1024 is the max length for display name
 		// https://docs.us-phoenix-1.oraclecloud.com/api/#/en/loadbalancer/20170115/requests/UpdateLoadBalancerDetails

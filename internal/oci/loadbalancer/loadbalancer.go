@@ -17,12 +17,14 @@ type Controller interface {
 	Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
 }
 
+// OCILoadBalancerController wraps logic for create,update,delete load balancers in OCI.
 type OCILoadBalancerController struct {
 	client        client.OCI
 	configuration config.Config
 	logger        zap.Logger
 }
 
+// NewOCILoadBalancerController will create a new OCILoadBalancerController
 func NewOCILoadBalancerController(client client.OCI, configuration config.Config, logger zap.Logger) *OCILoadBalancerController {
 	return &OCILoadBalancerController{
 		client:        client,
@@ -31,29 +33,33 @@ func NewOCILoadBalancerController(client client.OCI, configuration config.Config
 	}
 }
 
+// Reconcile will take an ingress and try to create or update a load balancer in OCI
 func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
 	controller.logger.Sugar().Infof("Reconciling ingress: %s/%s", ingress.Namespace, ingress.Name)
-	return nil, nil
+
+	ctx := context.Background()
+	definition := NewLoadBalancerDefinition(ingress)
+	return controller.createLoadBalancer(ctx, definition)
+
 }
 
-func (lb *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
-	lb.logger.Sugar().Infof("Creating load balancer from definition: %+v", definition)
-
+func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
+	controller.logger.Sugar().Infof("Creating load balancer from definition: %+v", definition)
 	details := loadbalancer.CreateLoadBalancerDetails{
-		CompartmentId: common.String(lb.configuration.Loadbalancer.Compartment),
+		CompartmentId: common.String(controller.configuration.Loadbalancer.Compartment),
 		DisplayName:   common.String(definition.Name),
 		ShapeName:     common.String(definition.Shape),
 		IsPrivate:     common.Bool(false),
-		SubnetIds:     lb.configuration.Loadbalancer.Subnets,
+		SubnetIds:     controller.configuration.Loadbalancer.Subnets,
 	}
 
 	req := loadbalancer.CreateLoadBalancerRequest{
 		CreateLoadBalancerDetails: details,
 	}
 
-	_, err := lb.client.Loadbalancer.CreateLoadBalancer(ctx, req)
+	_, err := controller.client.Loadbalancer.CreateLoadBalancer(ctx, req)
 	if err != nil {
-		lb.logger.Sugar().Errorf("Failed to provision load balancer: %s", err)
+		controller.logger.Sugar().Errorf("Failed to create load balancer: %s", err)
 		return nil, err
 	}
 

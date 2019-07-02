@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/handlers"
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/store"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/loadbalancer"
@@ -28,7 +29,7 @@ func Initialize(mgr manager.Manager, configuration config.Config, client client.
 		return err
 	}
 
-	c, err := controller.New("oracle-cloud-ingress-controller", mgr, controller.Options{Reconciler: reconciler})
+	c, err := controller.New("ingress", mgr, controller.Options{Reconciler: reconciler})
 	if err != nil {
 		return err
 	}
@@ -41,9 +42,14 @@ func Initialize(mgr manager.Manager, configuration config.Config, client client.
 }
 
 func newReconciler(mgr manager.Manager, configuration config.Config, lbc loadbalancer.Controller, logger zap.Logger) (reconcile.Reconciler, error) {
+	store, err := store.New(mgr.GetClient(), mgr.GetCache())
+	if err != nil {
+		return nil, err
+	}
 	return &Reconciler{
 		client:        mgr.GetClient(),
 		cache:         mgr.GetCache(),
+		store:         store,
 		configuration: configuration,
 		controller:    lbc,
 		logger:        logger,
