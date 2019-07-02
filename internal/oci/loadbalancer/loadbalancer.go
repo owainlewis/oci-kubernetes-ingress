@@ -6,6 +6,7 @@ import (
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/client"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
 	"go.uber.org/zap"
+	extensions "k8s.io/api/extensions/v1beta1"
 
 	"github.com/oracle/oci-go-sdk/common"
 	"github.com/oracle/oci-go-sdk/loadbalancer"
@@ -13,9 +14,7 @@ import (
 
 // Controller maps Kubernetes Ingress objects to OCI load balancers.
 type Controller interface {
-	Create(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error)
-	// Update(ctx context.Context, ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
-	// Delete(ctx context.Context, ingressKey types.NamespacedName) error
+	Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
 }
 
 type OCILoadBalancerController struct {
@@ -32,7 +31,12 @@ func NewOCILoadBalancerController(client client.OCI, configuration config.Config
 	}
 }
 
-func (lb *OCILoadBalancerController) Create(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
+func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
+	controller.logger.Sugar().Infof("Reconciling ingress: %s/%s", ingress.Namespace, ingress.Name)
+	return nil, nil
+}
+
+func (lb *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
 	lb.logger.Sugar().Infof("Creating load balancer from definition: %+v", definition)
 
 	details := loadbalancer.CreateLoadBalancerDetails{

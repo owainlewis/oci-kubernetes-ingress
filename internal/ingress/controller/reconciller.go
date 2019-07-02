@@ -39,6 +39,8 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 		r.logger.Sugar().Infof("Could not find ingress. Deleting: %s", ingress)
 
+		r.deleteIngress()
+
 		return reconcile.Result{}, nil
 	}
 
@@ -48,9 +50,29 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	r.controller.Create(ctx, definition)
 
 	return reconcile.Result{}, nil
+}
 
+func (r *Reconciler) deleteIngress() {
+}
+
+func (r *Reconciler) reconcileIngress(ingress *extensions.Ingress) error {
+	lbInfo, err := r.controller.Reconcile(ingress)
+	if err != nil {
+		return err
+	}
+	if err := r.updateIngressStatus(ctx, ingress, lbInfo); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Reconciler) updateIngressStatus(ctx context.Context, ingress *extensions.Ingress) error {
+	ingress.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+		{
+			Hostname: "TODO: Get Hostname",
+		},
+	}
+
 	return r.client.Status().Update(ctx, ingress)
 }
