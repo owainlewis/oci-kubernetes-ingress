@@ -21,7 +21,7 @@ import (
 )
 
 // Initialize ...
-func Initialize(mgr manager.Manager, configuration config.Config, client client.OCI, logger zap.Logger) error {
+func Initialize(mgr manager.Manager, configuration config.Config, client client.OCIClient, logger zap.Logger) error {
 	loadbalancerController := loadbalancer.NewOCILoadBalancerController(client, configuration, logger)
 
 	reconciler, err := newReconciler(mgr, configuration, loadbalancerController, logger)

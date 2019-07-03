@@ -19,13 +19,13 @@ type Controller interface {
 
 // OCILoadBalancerController wraps logic for create,update,delete load balancers in OCI.
 type OCILoadBalancerController struct {
-	client        client.OCI
+	client        client.OCIClient
 	configuration config.Config
 	logger        zap.Logger
 }
 
 // NewOCILoadBalancerController will create a new OCILoadBalancerController
-func NewOCILoadBalancerController(client client.OCI, configuration config.Config, logger zap.Logger) *OCILoadBalancerController {
+func NewOCILoadBalancerController(client client.OCIClient, configuration config.Config, logger zap.Logger) *OCILoadBalancerController {
 	return &OCILoadBalancerController{
 		client:        client,
 		configuration: configuration,
@@ -39,8 +39,20 @@ func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingre
 
 	ctx := context.Background()
 	definition := NewLoadBalancerDefinition(ingress)
-	return controller.createLoadBalancer(ctx, definition)
 
+	_, err := controller.client.GetLoadBalancerByName(ctx, controller.configuration.Loadbalancer.Compartment, definition.Name)
+	if err != nil {
+		// Perform a create action (TODO check for error being not found specifically)
+		controller.createLoadBalancer(ctx, definition)
+	}
+
+	// Perform an update action
+	return controller.updateLoadBalancer(ctx, definition)
+}
+
+func (controller *OCILoadBalancerController) updateLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
+	controller.logger.Sugar().Infof("Updating load balancer from definition: %+v", definition)
+	return nil, nil
 }
 
 func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
@@ -57,7 +69,7 @@ func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Cont
 		CreateLoadBalancerDetails: details,
 	}
 
-	_, err := controller.client.Loadbalancer.CreateLoadBalancer(ctx, req)
+	_, err := controller.client.CreateLoadBalancer(ctx, req)
 	if err != nil {
 		controller.logger.Sugar().Errorf("Failed to create load balancer: %s", err)
 		return nil, err
