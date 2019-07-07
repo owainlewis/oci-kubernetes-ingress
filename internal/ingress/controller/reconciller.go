@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/common"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/store"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/loadbalancer"
@@ -33,17 +34,18 @@ type Reconciler struct {
 
 // Reconcile will reconcile the aws resources with k8s state of ingress.
 func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	r.logger.Info("Reconcile loop called")
+	r.logger.Sugar().Infof("Reconcile loop called for %s", request.NamespacedName)
+
 	ctx := context.Background()
 	ingress := &extensions.Ingress{}
-
 	if err := r.cache.Get(ctx, request.NamespacedName, ingress); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconcile.Result{}, err
 		}
 
 		r.logger.Sugar().Infof("Could not find ingress to reconcile: %s", request.NamespacedName)
-		r.deleteIngress(ctx, ingress)
+		loadBalancerName := common.GetLoadBalancerName(request.Namespace, request.Name)
+		r.deleteIngressByName(ctx, loadBalancerName)
 
 		return reconcile.Result{}, nil
 	}
@@ -54,8 +56,9 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) deleteIngress(ctx context.Context, ingress *extensions.Ingress) {
-	r.logger.Sugar().Infof("Deleting ingress: %s", ingress)
+func (r *Reconciler) deleteIngressByName(ctx context.Context, name string) {
+	r.logger.Sugar().Infof("Deleting ingress: %s", name)
+	r.controller.DeleteLoadBalancerByName(name)
 }
 
 func (r *Reconciler) reconcileIngress(ctx context.Context, ingress *extensions.Ingress) error {

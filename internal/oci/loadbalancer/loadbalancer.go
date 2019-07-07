@@ -15,6 +15,7 @@ import (
 // Controller maps Kubernetes Ingress objects to OCI load balancers.
 type Controller interface {
 	Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error)
+	DeleteLoadBalancerByName(name string) error
 }
 
 // OCILoadBalancerController wraps logic for create,update,delete load balancers in OCI.
@@ -33,12 +34,20 @@ func NewOCILoadBalancerController(client client.OCIClient, configuration config.
 	}
 }
 
+func (controller *OCILoadBalancerController) DeleteLoadBalancerByName(name string) error {
+	ctx := context.Background()
+	controller.logger.Sugar().Infof("Deleting load balancer: %s", name)
+
+	controller.client.DeleteLoadBalancerByName(ctx, controller.configuration.Loadbalancer.Compartment, name)
+	return nil
+}
+
 // Reconcile will take an ingress and try to create or update a load balancer in OCI
 func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
-	controller.logger.Sugar().Infof("Reconciling ingress: %s/%s", ingress.Namespace, ingress.Name)
-
 	ctx := context.Background()
 	definition := NewLoadBalancerDefinition(ingress)
+
+	controller.logger.Sugar().Infof("Reconciling ingress: %s", definition.Name)
 
 	_, err := controller.client.GetLoadBalancerByName(ctx, controller.configuration.Loadbalancer.Compartment, definition.Name)
 	if err != nil {
@@ -50,12 +59,7 @@ func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingre
 	return controller.updateLoadBalancer(ctx, definition)
 }
 
-func (controller *OCILoadBalancerController) updateLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
-	controller.logger.Sugar().Infof("Updating load balancer from definition: %+v", definition)
-	return nil, nil
-}
-
-func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition LoadBalancerDefinition) (*loadbalancer.LoadBalancer, error) {
+func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Context, definition Definition) (*loadbalancer.LoadBalancer, error) {
 	controller.logger.Sugar().Infof("Creating load balancer from definition: %+v", definition)
 	details := loadbalancer.CreateLoadBalancerDetails{
 		CompartmentId: common.String(controller.configuration.Loadbalancer.Compartment),
@@ -75,5 +79,15 @@ func (controller *OCILoadBalancerController) createLoadBalancer(ctx context.Cont
 		return nil, err
 	}
 
+	return nil, nil
+}
+
+func (controller *OCILoadBalancerController) updateLoadBalancer(ctx context.Context, definition Definition) (*loadbalancer.LoadBalancer, error) {
+	controller.logger.Sugar().Infof("Updating load balancer: %+s", definition.Name)
+	return nil, nil
+}
+
+func (controller *OCILoadBalancerController) deleteBalancer(ctx context.Context, definition Definition) (*loadbalancer.LoadBalancer, error) {
+	controller.logger.Sugar().Infof("Deleting load balancer: %+s", definition.Name)
 	return nil, nil
 }

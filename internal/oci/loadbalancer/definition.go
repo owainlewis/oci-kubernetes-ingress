@@ -1,21 +1,26 @@
 package loadbalancer
 
 import (
-	"fmt"
-
 	extensions "k8s.io/api/extensions/v1beta1"
+
+	"github.com/owainlewis/oci-kubernetes-ingress/internal/common"
 )
 
-type LoadBalancerDefinition struct {
+// Definition is a structure representing the definition
+// of a loadbalancer
+type Definition struct {
 	Name  string
 	Shape string
 }
 
-func NewLoadBalancerDefinition(ingress *extensions.Ingress) LoadBalancerDefinition {
-	lbName := getLoadBalancerName(ingress)
+// NewLoadBalancerDefinition builds a load balancer defintion which is an internalised
+// simplified representation of a load balancer derived by combinging together all
+// the relevant information needed to create an OCI load balancer for a particular ingress.
+func NewLoadBalancerDefinition(ingress *extensions.Ingress) Definition {
+	lbName := common.GetLoadBalancerName(ingress.Namespace, ingress.Name)
 	lbShape := getLoadBalancerShape(ingress)
 
-	return LoadBalancerDefinition{
+	return Definition{
 		Name:  lbName,
 		Shape: lbShape,
 	}
@@ -23,15 +28,4 @@ func NewLoadBalancerDefinition(ingress *extensions.Ingress) LoadBalancerDefiniti
 
 func getLoadBalancerShape(ingress *extensions.Ingress) string {
 	return "100Mbps"
-}
-
-func getLoadBalancerName(ingress *extensions.Ingress) string {
-	name := fmt.Sprintf("%s-%s", ingress.Namespace, ingress.Name)
-	if len(name) > 1024 {
-		// 1024 is the max length for display name
-		// https://docs.us-phoenix-1.oraclecloud.com/api/#/en/loadbalancer/20170115/requests/UpdateLoadBalancerDetails
-		name = name[:1024]
-	}
-
-	return name
 }
