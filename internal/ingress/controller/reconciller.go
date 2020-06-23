@@ -32,7 +32,6 @@ type Reconciler struct {
 	logger        zap.Logger
 }
 
-// Reconcile will reconcile the aws resources with k8s state of ingress.
 func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	r.logger.Sugar().Infof("Reconcile loop called for %s", request.NamespacedName)
 
