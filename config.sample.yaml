@@ -9,7 +9,7 @@ auth:
 useInstancePrincipals: false
 loadbalancer:
   # Specifies which compartment to create a load balancer in (by default your cluster compartment should be set)
-  compartment: ocid1.compartment.oc1..aaaaaaaaob4ckouj3cjmf36ifjkff33wvln5fnnarumafqzpqq7tmbig2n5q
+  compartment: ocid1.compartment.oc1.....
   # Controls the subnets in which load balancers are provisioned.
   # A minimum of two must be declared.
   subnets:
