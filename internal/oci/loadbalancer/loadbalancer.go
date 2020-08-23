@@ -34,6 +34,14 @@ func NewOCILoadBalancerController(client client.OCIClient, configuration config.
 	}
 }
 
+// GetLoadBalancerByName will fetch a load balancer with a given display name if it exists
+func (controller *OCILoadBalancerController) GetLoadBalancerByName(name string) (*loadbalancer.LoadBalancer, error) {
+	ctx := context.Background()
+	controller.logger.Sugar().Infof("Getting load balancer: %s", name)
+	return controller.client.GetLoadBalancerByName(ctx, controller.configuration.Loadbalancer.Compartment, name)
+}
+
+// DeleteLoadBalancerByName will delete a load balancer with a matching display name if it exists in OCI.
 func (controller *OCILoadBalancerController) DeleteLoadBalancerByName(name string) error {
 	ctx := context.Background()
 	controller.logger.Sugar().Infof("Deleting load balancer: %s", name)
@@ -45,7 +53,7 @@ func (controller *OCILoadBalancerController) DeleteLoadBalancerByName(name strin
 // Reconcile will take an ingress and try to create or update a load balancer in OCI
 func (controller *OCILoadBalancerController) Reconcile(ingress *extensions.Ingress) (*loadbalancer.LoadBalancer, error) {
 	ctx := context.Background()
-	definition := NewLoadBalancerDefinition(ingress)
+	definition := NewLoadBalancerDefinition(ingress, nil, []string{})
 
 	controller.logger.Sugar().Infof("Reconciling ingress: %s", definition.Name)
 

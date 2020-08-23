@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
-var controllerName = "oracle-cloud-infrastructure-ingress-controller"
+var controllerName = "oci-ingress-controller"
 
 func main() {
 	// Setup logging

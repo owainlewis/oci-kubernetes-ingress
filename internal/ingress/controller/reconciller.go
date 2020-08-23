@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/common"
-	"github.com/owainlewis/oci-kubernetes-ingress/internal/ingress/controller/store"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/config"
 	"github.com/owainlewis/oci-kubernetes-ingress/internal/oci/loadbalancer"
 
@@ -24,9 +23,9 @@ import (
 
 // Reconciler reconciles a single ingress
 type Reconciler struct {
-	client        client.Client
-	cache         cache.Cache
-	store         store.Store
+	client client.Client
+	cache  cache.Cache
+	//store         store.Store
 	configuration config.Config
 	controller    loadbalancer.Controller
 	logger        zap.Logger

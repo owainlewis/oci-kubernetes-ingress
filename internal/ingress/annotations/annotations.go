@@ -4,6 +4,7 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 )
 
+// TODO tags
 const (
 	annotationKubernetesIngressClass = "kubernetes.io/ingress.class"
 	defaultIngressClass              = "oci"

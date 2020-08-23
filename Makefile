@@ -1,28 +1,21 @@
-GOOS ?= linux
-ARCH ?= amd64
+GOOS?=linux
+GOARCH?=amd64
+GOBIN:=$(shell pwd)/.bin
+
+GIT_REPO=$(shell git config --get remote.origin.url)
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
 VERSION := $(shell git rev-parse --short=8 HEAD)
 
-all: build test
+VERSION_LD_FLAGS=
+COMPILE_OUTPUT?=controller
 
-build: _deps
-	VERSION=$(VERSION) hack/build.sh
+all: build
 
-test:
-	go test ./...
+.PHONY: build
+build:
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -v -ldflags="-s -w $(VERSION_LD_FLAGS)" -a -installsuffix cgo  -o ${COMPILE_OUTPUT} ./cmd
 
+.PHONY: run
 run:
-	go run cmd/main.go \
-		-kubeconfig=$$KUBECONFIG \
-		-config=./config.yaml
-
-.PHONY: e2e
-e2e:
-	go run cmd/main.go \
-		-config=./config.yaml
-
-_deps:
-	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-	dep ensure -v
-	dep prune -v
-	find vendor -name '*_test.go' -delete
+	go run cmd/main.go
